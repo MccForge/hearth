@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-05T22:46:52+00:00",
+ "generated": "2026-09-05T23:10:31+00:00",
  "host": "scripted",
  "model": null,
  "summary": {
@@ -762,7 +762,7 @@
    "host": "scripted",
    "facts": {
     "turns": 8,
-    "seconds": 0.1,
+    "seconds": 0.3,
     "completed": true,
     "request_help": false,
     "snoozed": false,
