@@ -20,6 +20,7 @@ Every morning, inside the check-in window, the assistant runs a two-minute conve
 - **Domain logic**: transparent keyword flags with negation handling, concern scoring, summaries, seven-day trend insights, away-aware contact routing.
 - **Escalation watchdog** with idempotent per-day ladder levels and an injectable clock.
 - **Caregiver dashboard**: status, 14-day timeline with the actual words, alerts to acknowledge, trends, calendar, voice-message recorder with scheduling, questions queue, contacts with away mode, window settings.
+- **AWS integration** (documented for the AWS Builder challenge): the simulator's host runs on Amazon Bedrock, Claude Sonnet 4.6 or Amazon Nova 2 Lite through the Converse API with a Bedrock API key, the same two model families Alexa+ itself uses; family email alerts go out through Amazon SES. Both are switched on by environment variables and off by default.
 - **Alexa+ simulator**: an Echo Show style device and the family's phone in one page. It implements the host side of MCP Apps (sandboxed frames, initialize, tool input and results, `ui/message` back into the conversation, `tools/call` from a view), drives a scripted host with light language handling and no API dependency, or an LLM host over any OpenAI-compatible endpoint. Plays family audio, records voice notes back, shows every MCP call live. Speech in and out via the browser.
 - **Certification self-check**: Amazon's inspector is preview-only, so `tests/certification_check.py` grades Hearth against the published functional requirements over the real endpoint and writes `certification-verdict.json` (22 rules, all passing): invocable tools, schemas, error shapes, stable ids, latency, continuity, views, metadata, OAuth.
 - **Tests**: 19, covering parsers, negation, fresh-per-day records, context assembly, away routing, audio round-trip, events, ladder timing, snooze, the scripted host end to end, the MCP Apps surface over Streamable HTTP, and the two-tier OAuth flow.
@@ -37,7 +38,7 @@ Hosts don't need many tools; they need the right context up front and a follow-u
 Real Alexa+ device testing when the toolkit opens up, an LLM host on Amazon Bedrock, email and SMS through AWS, multiple households per instance, a weekly family digest, a phone-call fallback when the device gets no answer.
 
 ## Built with
-Python, MCP Python SDK 2.1 (Streamable HTTP, audio content, structured output), MCP Apps (ui:// views over postMessage), OAuth 2.1 with PKCE, Starlette, Uvicorn, SQLite, vanilla HTML/JS, MediaRecorder and Web Speech APIs, pytest.
+Python, MCP Python SDK 2.1 (Streamable HTTP, audio content, structured output), MCP Apps (ui:// views over postMessage), OAuth 2.1 with PKCE, Amazon Bedrock (Claude Sonnet 4.6 and Amazon Nova 2 Lite through the Converse API as the simulator's host, the same model families Alexa+ runs on), Amazon SES (family email), Starlette, Uvicorn, SQLite, vanilla HTML/JS, MediaRecorder and Web Speech APIs, pytest.
 
 ## Disclosure
 Designed and directed by James McC; code, tests, and docs written with heavy use of Claude, reviewed and tested locally.

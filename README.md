@@ -113,7 +113,7 @@ Hearth doesn't diagnose. It adds up things a family member would want to know: l
 
 ## Notifications
 
-Every message is written to the dashboard feed. Email (SMTP) and webhooks are wired and switched on by environment variables; SMS is a stub for a Twilio-compatible provider. Nothing leaves the machine unless configured.
+Every message is written to the dashboard feed. Email goes out through any SMTP relay; the demo household uses Amazon SES (a verified sender, SES SMTP credentials, port 587 with STARTTLS). Webhooks are wired too; SMS is a stub for a Twilio-compatible provider. Nothing leaves the machine unless configured.
 
 | Variable | Purpose |
 |---|---|
@@ -121,7 +121,8 @@ Every message is written to the dashboard feed. Email (SMTP) and webhooks are wi
 | (any of these in a `.env` file) | `python -m hearth` reads `KEY=value` lines from `.env` in the working directory; the file is git-ignored |
 | `HEARTH_DB`, `HEARTH_MEDIA` | SQLite path, audio folder |
 | `HEARTH_WATCHDOG_SECONDS` | Ladder evaluation interval (default 60) |
-| `HEARTH_SMTP_HOST/PORT/USER/PASS/FROM` | Enable email to contacts with `channel=email` |
+| `HEARTH_SMTP_HOST/PORT/USER/PASS/FROM` | Enable email to contacts with `channel=email`. For Amazon SES: host `email-smtp.<region>.amazonaws.com`, port 587, the SMTP credentials from the SES console, a verified sender |
+| `HEARTH_FAMILY_EMAIL` | Demo convenience: the seeded family contacts get this real inbox with `channel=email` |
 | `HEARTH_LLM_BASE_URL/API_KEY/MODEL` | Optional: run the simulator with a real LLM host. Amazon Bedrock Converse API (Claude, Nova): base URL `https://bedrock-runtime.us-west-2.amazonaws.com`, a Bedrock API key, model `us.anthropic.claude-sonnet-4-6`. Or any OpenAI-compatible endpoint (Bedrock Mantle, Groq, OpenAI): base URL ending in `/v1`, model e.g. `openai.gpt-oss-120b` |
 | `HEARTH_LLM_PROTOCOL` | `converse` (Bedrock Converse API) or `chat` (OpenAI chat completions). Inferred from the base URL when unset |
 | `HEARTH_PUBLIC_URL` | Public HTTPS base URL. Setting it turns on OAuth for `/mcp` and the account-linking page |
