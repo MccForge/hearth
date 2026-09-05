@@ -5,34 +5,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hearth · Caregiver dashboard</title>
 <style>
-  :root { --bg:#f7f3ee; --card:#fff; --ink:#2b2622; --muted:#7a716a; --line:#e7dfd6; --ok:#3a8f5c; --watch:#d9a300; --concern:#e07b1a; --urgent:#c8322b; --accent:#b5542d; }
+  :root { --bg:#f7f3ee; --card:#fff; --ink:#2b2622; --muted:#7a716a; --line:#e7dfd6; --ok:#3a8f5c; --watch:#d9a300; --concern:#e07b1a; --urgent:#c8322b; --accent:#b5542d; --soft:#faf6f1; }
   * { box-sizing:border-box } body { margin:0; font:15px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--bg) }
-  header { display:flex; align-items:center; gap:14px; padding:16px 24px; border-bottom:1px solid var(--line); background:#fff }
-  header h1 { font-size:22px; margin:0; letter-spacing:.3px } header h1 span { color:var(--accent) } header .tag { color:var(--muted); font-size:14px }
+  header { display:flex; align-items:center; gap:14px; padding:14px 24px; border-bottom:1px solid var(--line); background:#fff; position:sticky; top:0; z-index:5 }
+  header h1 { font-size:22px; margin:0 } header h1 span { color:var(--accent) } header .tag { color:var(--muted); font-size:14px }
   header nav { margin-left:auto; display:flex; gap:14px } header nav a { color:var(--accent); text-decoration:none; font-weight:600 }
-  main { max-width:1180px; margin:0 auto; padding:20px 24px; display:grid; grid-template-columns: 1.4fr 1fr; gap:18px }
+  main { max-width:1220px; margin:0 auto; padding:20px 24px; display:grid; grid-template-columns: 1.35fr 1fr; gap:18px; align-items:start }
+  .col { display:flex; flex-direction:column; gap:18px }
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; box-shadow:0 1px 2px rgba(0,0,0,.03) }
-  .card h2 { margin:0 0 12px; font-size:15px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted) }
-  .person { display:flex; gap:16px; align-items:flex-start } .avatar { width:64px; height:64px; border-radius:50%; background:#f0d9c9; display:grid; place-items:center; font-size:26px; font-weight:700; color:var(--accent) }
-  .name { font-size:22px; font-weight:700 } .sub { color:var(--muted) }
-  .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:13px; font-weight:600; color:#fff; background:var(--muted) }
+  .card h2 { margin:0 0 12px; font-size:14px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted) }
+  .person { display:flex; gap:16px; align-items:flex-start } .avatar { width:64px; height:64px; border-radius:50%; background:#f0d9c9; display:grid; place-items:center; font-size:26px; font-weight:700; color:var(--accent); flex:none }
+  .name { font-size:22px; font-weight:700 } .sub { color:var(--muted); font-size:14px }
+  .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:13px; font-weight:600; color:#fff; background:var(--muted); vertical-align:middle }
   .pill.checked_in { background:var(--ok) } .pill.waiting, .pill.before_window, .pill.in_progress { background:#5b7fb8 } .pill.overdue { background:var(--urgent) }
-  .summary { margin:12px 0 6px; font-size:16px } .flags span { display:inline-block; margin:4px 6px 0 0; padding:2px 9px; border-radius:8px; background:#fbe9dd; color:#8a4a20; font-size:13px }
+  .summary { margin:12px 0 6px; font-size:16px } .flags span, .chip { display:inline-block; margin:4px 6px 0 0; padding:2px 9px; border-radius:8px; background:#fbe9dd; color:#8a4a20; font-size:13px }
+  .chip.blue { background:#e4ecf7; color:#2d4a73 } .chip.green { background:#e2f1e7; color:#245c3a }
   .risk { height:8px; border-radius:6px; background:#eee; margin-top:10px; overflow:hidden } .risk i { display:block; height:100% }
   .lvl-ok { background:var(--ok) } .lvl-watch { background:var(--watch) } .lvl-concern { background:var(--concern) } .lvl-urgent { background:var(--urgent) }
   .timeline { display:grid; grid-template-columns:repeat(14,1fr); gap:6px; margin-top:6px } .day { aspect-ratio:1; border-radius:8px; background:#eee; cursor:pointer; position:relative; border:2px solid transparent }
   .day.sel { border-color:var(--ink) } .day small { position:absolute; bottom:2px; left:0; right:0; text-align:center; font-size:10px; color:rgba(0,0,0,.55) }
-  .detail { margin-top:12px; padding:12px; border-radius:10px; background:#faf6f1; font-size:14px } .detail .q { color:var(--muted); font-size:13px }
-  .alert { border-left:4px solid var(--muted); padding:8px 12px; margin:8px 0; background:#faf6f1; border-radius:6px } .alert.urgent, .alert.missed_3 { border-color:var(--urgent) }
+  .detail { margin-top:12px; padding:12px; border-radius:10px; background:var(--soft); font-size:14px } .detail .q { color:var(--muted); font-size:13px }
+  .alert { border-left:4px solid var(--muted); padding:8px 12px; margin:8px 0; background:var(--soft); border-radius:6px } .alert.urgent, .alert.missed_3 { border-color:var(--urgent) }
   .alert.concern, .alert.missed_2 { border-color:var(--concern) } .alert.watch, .alert.missed_1 { border-color:var(--watch) } .alert.info { border-color:var(--ok) }
-  .alert .when { color:var(--muted); font-size:12px } .alert.acked { opacity:.55 }
+  .when { color:var(--muted); font-size:12px } .alert.acked { opacity:.55 }
   button { font:inherit; padding:7px 12px; border-radius:9px; border:1px solid var(--line); background:#fff; cursor:pointer } button.primary { background:var(--accent); color:#fff; border-color:var(--accent) }
-  button.small { padding:4px 9px; font-size:13px }
+  button.small { padding:4px 9px; font-size:13px } button.rec { background:#c8322b; color:#fff; border-color:#c8322b } button:disabled { opacity:.5; cursor:default }
+  input, select, textarea { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:#fff } textarea { width:100%; min-height:56px; resize:vertical }
+  label { font-size:13px; color:var(--muted) } .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px }
+  .list > div { padding:8px 0; border-bottom:1px dashed var(--line); font-size:14px } .list > div:last-child { border-bottom:none }
   .contacts li { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--line) } .contacts { list-style:none; padding:0; margin:0 }
   .ladder { font-size:13px; color:var(--muted); margin-top:10px } .ladder b { color:var(--ink) }
-  .feed div { padding:6px 0; border-bottom:1px dashed var(--line); font-size:14px } .feed .when { color:var(--muted); font-size:12px }
-  .demo { border-style:dashed } .demo .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px } .note { color:var(--muted); font-size:13px }
-  .settings label { display:block; font-size:13px; color:var(--muted); margin-top:8px } .settings input { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:8px; width:110px }
+  .note { color:var(--muted); font-size:13px } .demo { border-style:dashed } audio { width:100%; height:32px; margin-top:4px }
+  .stat { display:inline-block; margin-right:16px } .stat b { font-size:20px } .insight { padding:6px 10px; background:#fff4e8; border-radius:8px; margin:6px 0; font-size:14px }
   @media (max-width: 900px) { main { grid-template-columns:1fr } }
 </style>
 </head>
@@ -42,67 +46,131 @@
   <nav><a href="/">Dashboard</a><a href="/sim">Alexa+ simulator</a><a href="/mcp" title="MCP endpoint (Streamable HTTP)">MCP endpoint</a></nav>
 </header>
 <main>
-  <section>
+  <section class="col">
     <div class="card" id="personCard">Loading…</div>
-    <div class="card" style="margin-top:18px"><h2>Last 14 days</h2><div class="timeline" id="timeline"></div><div class="detail" id="dayDetail" hidden></div></div>
-    <div class="card demo" style="margin-top:18px"><h2>Demo controls</h2>
+    <div class="card"><h2>Last 14 days</h2><div class="timeline" id="timeline"></div><div class="detail" id="dayDetail" hidden></div></div>
+    <div class="card"><h2>This week</h2><div id="trends"></div></div>
+    <div class="card"><h2>Appointments &amp; reminders</h2>
+      <div class="note">Raised during the check-in on the day, with a heads-up the day before. Margaret can add these by voice too.</div>
+      <div class="row"><input id="evDate" type="date"><input id="evTime" type="time"><input id="evTitle" placeholder="Dr. Patel, cardiology" style="flex:1;min-width:160px">
+        <select id="evKind"><option value="appointment">appointment</option><option value="reminder">reminder</option><option value="birthday">birthday</option><option value="other">other</option></select></div>
+      <div class="row"><input id="evNotes" placeholder="Notes Hearth should mention, e.g. Tom is driving you" style="flex:1"><label><input id="evBefore" type="checkbox" checked> heads-up the day before</label><button class="small primary" onclick="addEvent()">Add</button></div>
+      <div class="list" id="events" style="margin-top:8px"></div></div>
+    <div class="card demo"><h2>Demo controls</h2>
       <div class="note">These simulate the clock so the escalation ladder can be shown in a demo. They are not part of a real deployment.</div>
       <div class="row">
         <button onclick="demoMissed(0)">Window just closed</button><button onclick="demoMissed(45)">45 min overdue</button><button onclick="demoMissed(120)">2 h overdue</button>
         <button onclick="post('/api/watchdog/run',{}).then(load)">Run watchdog now</button><button onclick="if(confirm('Reset demo data?'))post('/api/demo/reset',{}).then(load)">Reset demo data</button>
       </div></div>
   </section>
-  <section>
+  <section class="col">
     <div class="card"><h2>Alerts</h2><div id="alerts"></div></div>
-    <div class="card" style="margin-top:18px"><h2>Contacts &amp; escalation</h2><ul class="contacts" id="contacts"></ul>
-      <div class="ladder"><b>Ladder:</b> window closes → Hearth re-prompts Margaret and opens a watch alert · <b>+30 min</b> → primary contact notified · <b>+90 min</b> → everyone notified with last known status. A completed check-in clears it.</div></div>
-    <div class="card settings" style="margin-top:18px"><h2>Check-in window</h2>
-      <label>Start <input id="ws" type="time"></label><label>End <input id="we" type="time"></label>
-      <div style="margin-top:10px"><button class="small primary" onclick="saveSettings()">Save</button> <span class="note" id="saveMsg"></span></div></div>
-    <div class="card" style="margin-top:18px"><h2>Messages sent</h2><div class="feed" id="feed"></div></div>
+    <div class="card"><h2>Messages for Margaret</h2>
+      <div class="note">Record in your own voice. It plays at the start of the check-in, then Hearth carries on. Repeat it daily while you're away.</div>
+      <div class="row"><input id="msgFrom" placeholder="From" value="Anna" style="width:110px"><button id="recBtn" onclick="toggleRec()">● Record</button><span class="note" id="recState"></span></div>
+      <div class="row"><select id="msgWhen" onchange="whenChanged()"><option value="next">Play at next check-in</option><option value="date">Play on a date</option><option value="range">Every day between dates</option></select>
+        <input id="msgFrom_d" type="date" hidden><input id="msgTo_d" type="date" hidden></div>
+      <textarea id="msgText" placeholder="…or type a message for Hearth to read out"></textarea>
+      <div class="row"><button class="small primary" onclick="sendMessage()">Send</button><span class="note" id="msgState"></span></div>
+      <div class="list" id="msgList" style="margin-top:10px"></div></div>
+    <div class="card"><h2>Voice notes from Margaret</h2><div class="list" id="replies"></div></div>
+    <div class="card"><h2>Questions to ask</h2>
+      <div class="note">Hearth works these into the next check-in and reports the answer.</div>
+      <div class="row"><input id="qFrom" placeholder="From" value="Anna" style="width:90px"><input id="qText" placeholder="Did the plumber come about the tap?" style="flex:1;min-width:160px"><button class="small primary" onclick="addQuestion()">Add</button></div>
+      <div class="list" id="questions" style="margin-top:8px"></div></div>
+    <div class="card"><h2>Contacts &amp; escalation</h2><ul class="contacts" id="contacts"></ul>
+      <div class="ladder"><b>Ladder:</b> window closes → Hearth re-prompts Margaret and opens a watch alert · <b>+30 min</b> → primary contact · <b>+90 min</b> → everyone, with last known status. A completed check-in clears it. Someone marked away drops out and their cover steps in.</div>
+      <div class="row" style="margin-top:12px"><select id="awayWho"></select><input id="awayFrom" type="date"><input id="awayTo" type="date"><select id="awayCover"></select><button class="small" onclick="addAway()">Mark away</button></div>
+      <div class="list" id="awayList"></div></div>
+    <div class="card"><h2>Check-in window</h2>
+      <div class="row"><label>Start <input id="ws" type="time"></label><label>End <input id="we" type="time"></label><button class="small primary" onclick="saveSettings()">Save</button><span class="note" id="saveMsg"></span></div></div>
+    <div class="card"><h2>Messages sent to family</h2><div class="list" id="feed"></div></div>
   </section>
 </main>
 <script>
-const PID = 1; let data = null, selDay = null;
-const post = (u, b) => fetch(u, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(b)}).then(r => r.json());
+const PID = 1; let data = null, selDay = null, rec = null, recChunks = [], recBlob = null, recMime = '';
+const post = (u, b, m='POST') => fetch(u, {method:m, headers:{'Content-Type':'application/json'}, body: b ? JSON.stringify(b) : undefined}).then(r => r.json());
 const fmt = iso => { if (!iso) return ''; const d = new Date(iso); return d.toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}); };
+const fmtDate = s => { const [y,m,d] = s.split('-'); return new Date(y, m-1, d).toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'}); };
+const fmtTime = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${h < 12 ? 'am' : 'pm'}`; };
 const lvl = r => r == null ? 'none' : r >= 80 ? 'urgent' : r >= 50 ? 'concern' : r >= 25 ? 'watch' : 'ok';
 const stateText = {checked_in:'Checked in', in_progress:'Check-in in progress', waiting:'Waiting for check-in', before_window:'Before window', overdue:'Overdue'};
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function load() {
   data = await fetch(`/api/persons/${PID}`).then(r => r.json());
-  const p = data.person, s = data.status;
-  const initials = p.name.split(' ').map(x => x[0]).join('');
+  const p = data.person, s = data.status, today = s.date;
+  const evToday = data.events.filter(e => e.date === today && e.status !== 'cancelled');
   document.getElementById('personCard').innerHTML = `
-    <div class="person"><div class="avatar">${initials}</div><div style="flex:1">
-      <div class="name">${p.name} <span class="pill ${s.state}">${stateText[s.state] || s.state}</span></div>
-      <div class="sub">${p.notes || ''}</div>
+    <div class="person"><div class="avatar">${p.name.split(' ').map(x => x[0]).join('')}</div><div style="flex:1">
+      <div class="name">${esc(p.name)} <span class="pill ${s.state}">${stateText[s.state] || s.state}</span></div>
+      <div class="sub">${esc(p.notes || '')}</div>
       <div class="sub" style="margin-top:4px">Local time ${s.local_time} · window ${s.window}${s.overdue_minutes ? ' · ' + s.overdue_minutes + ' min past window' : ''}${s.snoozed_until ? ' · snoozed' : ''}</div>
-      <div class="summary">${s.summary || (s.state === 'overdue' ? 'No check-in yet today.' : 'No check-in yet today.')}</div>
+      ${s.away.length ? `<div class="sub" style="margin-top:4px">✈ ${s.away.map(a => `${esc(a.who)} away until ${fmtDate(a.until)}${a.cover ? ', ' + esc(a.cover) + ' covering' : ''}`).join(' · ')}</div>` : ''}
+      ${evToday.length ? `<div style="margin-top:6px">${evToday.map(e => `<span class="chip blue">Today: ${esc(e.title)}${e.time ? ' at ' + fmtTime(e.time) : ''}${e.status === 'done' ? ' ✓' : ''}</span>`).join('')}</div>` : ''}
+      <div class="summary">${esc(s.summary || 'No check-in yet today.')}</div>
       <div class="flags">${(s.flags || []).map(f => `<span>${f.replace('_', ' ')}</span>`).join('')}</div>
       ${s.risk != null ? `<div class="risk"><i class="lvl-${lvl(s.risk)}" style="width:${Math.max(4, s.risk)}%"></i></div><div class="note">Concern level: ${lvl(s.risk)} (${s.risk}/100)</div>` : ''}
+      ${s.pending_messages || s.pending_questions ? `<div class="note" style="margin-top:6px">Queued for the next check-in: ${s.pending_messages} message${s.pending_messages === 1 ? '' : 's'}, ${s.pending_questions} question${s.pending_questions === 1 ? '' : 's'}</div>` : ''}
     </div></div>`;
   document.getElementById('ws').value = p.window_start; document.getElementById('we').value = p.window_end;
-  const byDate = {}; data.checkins.forEach(c => byDate[c.date] = c);
+  const byDate = {}; data.checkins.forEach(c => { if (!byDate[c.date]) byDate[c.date] = c; });
   const days = []; for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d.toISOString().slice(0, 10)); }
   document.getElementById('timeline').innerHTML = days.map(d => { const c = byDate[d]; const l = c ? (c.completed_at ? lvl(c.risk) : 'watch') : 'none';
-    return `<div class="day ${selDay === d ? 'sel' : ''}" title="${d}${c ? ': ' + (c.summary || 'in progress') : ': no check-in'}" onclick="showDay('${d}')" style="background:${l === 'none' ? '#eee' : `var(--${l})`}"><small>${d.slice(8)}</small></div>`; }).join('');
+    return `<div class="day ${selDay === d ? 'sel' : ''}" title="${d}${c ? ': ' + esc(c.summary || 'in progress') : ': no check-in'}" onclick="showDay('${d}')" style="background:${l === 'none' ? '#eee' : `var(--${l})`}"><small>${d.slice(8)}</small></div>`; }).join('');
   if (selDay) showDay(selDay);
+  const t = data.trends;
+  document.getElementById('trends').innerHTML = `<div><span class="stat"><b>${t.avg_mood ?? '–'}</b><br><span class="note">avg mood /5</span></span><span class="stat"><b>${t.avg_sleep ?? '–'}</b><br><span class="note">avg sleep /5</span></span><span class="stat"><b>${t.meds_missed}</b><br><span class="note">meds missed</span></span><span class="stat"><b>${t.days}</b><br><span class="note">check-ins</span></span></div>` +
+    (t.insights.length ? t.insights.map(i => `<div class="insight">${esc(i)}</div>`).join('') : '<div class="note" style="margin-top:8px">Nothing out of the ordinary this week.</div>');
+  document.getElementById('events').innerHTML = data.events.filter(e => e.status !== 'cancelled' && e.date >= today).map(e => `<div><b>${fmtDate(e.date)}</b>${e.time ? ' ' + fmtTime(e.time) : ''} · ${esc(e.title)} <span class="note">${e.kind}${e.notes ? ' · ' + esc(e.notes) : ''} · added by ${esc(e.added_by)}</span>
+    ${e.status === 'done' ? `<div class="note">✓ raised in check-in${e.response ? ': “' + esc(e.response) + '”' : ''}</div>` : e.status === 'mentioned' ? '<div class="note">mentioned, check-in in progress</div>' : ''}
+    ${e.status === 'pending' ? `<button class="small" style="float:right" onclick="del('/api/events/${e.id}')">remove</button>` : ''}</div>`).join('') || '<div class="note">Nothing coming up.</div>';
   const al = data.alerts;
   document.getElementById('alerts').innerHTML = al.length ? al.map(a => `<div class="alert ${a.level} ${a.status !== 'open' ? 'acked' : ''}">
-    <b>${a.level.replace('_', ' ')}</b> · ${a.reason}<div>${a.detail || ''}</div><div class="when">${fmt(a.created_at)}${a.status !== 'open' ? ' · ' + a.status + (a.acknowledged_by ? ' by ' + a.acknowledged_by : '') : ''}</div>
+    <b>${a.level.replace('_', ' ')}</b> · ${esc(a.reason)}<div>${esc(a.detail || '')}</div><div class="when">${fmt(a.created_at)}${a.status !== 'open' ? ' · ' + a.status + (a.acknowledged_by ? ' by ' + esc(a.acknowledged_by) : '') : ''}</div>
     ${a.status === 'open' ? `<button class="small" style="margin-top:6px" onclick="ack(${a.id})">Acknowledge</button>` : ''}</div>`).join('') : '<div class="note">No alerts.</div>';
-  document.getElementById('contacts').innerHTML = data.contacts.map(c => `<li><span><b>${c.name}</b> <span class="note">${c.relation || ''}</span></span><span class="note">priority ${c.priority} · ${c.channel}</span></li>`).join('');
-  document.getElementById('feed').innerHTML = data.notifications.length ? data.notifications.map(n => `<div>${n.message}<div class="when">${fmt(n.sent_at)} · ${n.channel}${n.delivered ? '' : ' · not delivered'}</div></div>`).join('') : '<div class="note">Nothing sent yet.</div>';
+  const toP = data.messages.filter(m => m.direction === 'to_person' && m.status !== 'archived');
+  document.getElementById('msgList').innerHTML = toP.length ? toP.map(m => `<div><b>${esc(m.from_name)}</b> <span class="note">${m.kind} · ${m.status}${m.played_at ? ' ' + fmt(m.played_at) : ''}${m.repeat_daily ? ' · daily until ' + fmtDate(m.play_until) : m.play_from ? ' · on ' + fmtDate(m.play_from) : ' · next check-in'}</span>
+    ${m.transcript ? `<div>“${esc(m.transcript)}”</div>` : ''}${m.audio_path ? `<audio controls preload="none" src="/api/media/${m.id}"></audio>` : ''}
+    ${m.status === 'pending' ? `<button class="small" onclick="del('/api/messages/${m.id}')">remove</button>` : ''}</div>`).join('') : '<div class="note">No messages queued.</div>';
+  const toF = data.messages.filter(m => m.direction === 'to_family');
+  document.getElementById('replies').innerHTML = toF.length ? toF.map(m => `<div><b>${esc(m.from_name)}</b> <span class="when">${fmt(m.created_at)}</span><div>“${esc(m.transcript)}”</div>${m.audio_path ? `<audio controls preload="none" src="/api/media/${m.id}"></audio>` : ''}</div>`).join('') : '<div class="note">Margaret can say “tell Anna…” during a check-in, or record a note in the simulator.</div>';
+  const qs = data.questions.filter(q => q.status !== 'cancelled');
+  document.getElementById('questions').innerHTML = qs.length ? qs.map(q => `<div><b>${esc(q.from_name)}:</b> ${esc(q.text)} ${q.status === 'answered' ? `<div class="note">Answer: “${esc(q.answer || '')}”</div>` : `<span class="note">pending</span> <button class="small" style="float:right" onclick="del('/api/questions/${q.id}')">remove</button>`}</div>`).join('') : '<div class="note">No questions queued.</div>';
+  document.getElementById('contacts').innerHTML = data.active_contacts.map(c => `<li><span><b>${esc(c.name)}</b> <span class="note">${esc(c.relation || '')}${c.covering_for ? ' · covering for ' + esc(c.covering_for) : ''}</span></span><span class="note">priority ${c.priority} · ${c.channel}</span></li>`).join('') +
+    data.contacts.filter(c => !data.active_contacts.some(a => a.id === c.id)).map(c => `<li style="opacity:.55"><span><b>${esc(c.name)}</b> <span class="note">${esc(c.relation || '')} · away</span></span><span class="note">priority ${c.priority}</span></li>`).join('');
+  const opts = data.contacts.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  if (!document.getElementById('awayWho').options.length) { document.getElementById('awayWho').innerHTML = opts; document.getElementById('awayCover').innerHTML = '<option value="">no cover</option>' + opts; }
+  document.getElementById('awayList').innerHTML = data.away.map(a => { const who = data.contacts.find(c => c.id === a.contact_id), cov = data.contacts.find(c => c.id === a.cover_contact_id);
+    return `<div>${esc(who ? who.name : '?')} away ${fmtDate(a.start_date)} → ${fmtDate(a.end_date)}${cov ? ', ' + esc(cov.name) + ' covers' : ''}${a.note ? ' · ' + esc(a.note) : ''} <button class="small" style="float:right" onclick="del('/api/away/${a.id}')">clear</button></div>`; }).join('');
+  document.getElementById('feed').innerHTML = data.notifications.length ? data.notifications.map(n => `<div>${esc(n.message)}<div class="when">${fmt(n.sent_at)} · ${n.channel}${n.delivered ? '' : ' · not delivered'}</div></div>`).join('') : '<div class="note">Nothing sent yet.</div>';
 }
 function showDay(d) { selDay = d; const c = data.checkins.find(x => x.date === d); const el = document.getElementById('dayDetail'); el.hidden = false;
   document.querySelectorAll('.day').forEach(x => x.classList.toggle('sel', x.title.startsWith(d)));
   if (!c) { el.innerHTML = `<b>${d}</b> · no check-in recorded`; return; }
-  el.innerHTML = `<b>${d}</b> · ${c.completed_at ? 'completed ' + fmt(c.completed_at) : 'in progress'} · concern ${lvl(c.risk)} (${c.risk})<div style="margin-top:6px">${c.summary || ''}</div>` +
-    (c.transcript.length ? `<div style="margin-top:8px" class="q">What was said:</div>` + c.transcript.map(t => `<div>· <i>${t.field}</i>: “${t.quote || t.value}”</div>`).join('') : ''); }
+  el.innerHTML = `<b>${d}</b> · ${c.completed_at ? 'completed ' + fmt(c.completed_at) : 'in progress'} · concern ${lvl(c.risk)} (${c.risk})<div style="margin-top:6px">${esc(c.summary || '')}</div>` +
+    (c.transcript.length ? `<div style="margin-top:8px" class="q">What was said:</div>` + c.transcript.map(t => `<div>· <i>${esc(t.field)}</i>: “${esc(t.quote || t.value)}”</div>`).join('') : ''); }
 async function ack(id) { await post(`/api/alerts/${id}/ack`, {by: 'Anna Hale'}); load(); }
-async function demoMissed(m) { const r = await post('/api/demo/missed', {person_id: PID, minutes_past: m}); load(); }
+async function del(url) { await post(url, null, 'DELETE'); load(); }
+async function demoMissed(m) { await post('/api/demo/missed', {person_id: PID, minutes_past: m}); load(); }
 async function saveSettings() { await post(`/api/persons/${PID}/settings`, {window_start: document.getElementById('ws').value, window_end: document.getElementById('we').value}); document.getElementById('saveMsg').textContent = 'Saved.'; setTimeout(() => document.getElementById('saveMsg').textContent = '', 2000); load(); }
-load(); setInterval(load, 5000);
+async function addEvent() { const date = document.getElementById('evDate').value, title = document.getElementById('evTitle').value.trim(); if (!date || !title) return alert('Date and title, please.');
+  await post(`/api/persons/${PID}/events`, {date, time: document.getElementById('evTime').value, title, kind: document.getElementById('evKind').value, notes: document.getElementById('evNotes').value, remind_day_before: document.getElementById('evBefore').checked, added_by: document.getElementById('msgFrom').value || 'Family'});
+  document.getElementById('evTitle').value = ''; document.getElementById('evNotes').value = ''; load(); }
+async function addQuestion() { const text = document.getElementById('qText').value.trim(); if (!text) return; await post(`/api/persons/${PID}/questions`, {from_name: document.getElementById('qFrom').value || 'Family', text}); document.getElementById('qText').value = ''; load(); }
+async function addAway() { const contact_id = document.getElementById('awayWho').value, start_date = document.getElementById('awayFrom').value, end_date = document.getElementById('awayTo').value; if (!start_date || !end_date) return alert('Both dates, please.');
+  await post(`/api/persons/${PID}/away`, {contact_id, start_date, end_date, cover_contact_id: document.getElementById('awayCover').value || null}); load(); }
+function whenChanged() { const w = document.getElementById('msgWhen').value; document.getElementById('msgFrom_d').hidden = w === 'next'; document.getElementById('msgTo_d').hidden = w !== 'range'; }
+async function toggleRec() { const btn = document.getElementById('recBtn'), st = document.getElementById('recState');
+  if (rec && rec.state === 'recording') { rec.stop(); return; }
+  try { const stream = await navigator.mediaDevices.getUserMedia({audio: true}); recMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : ''); rec = new MediaRecorder(stream, recMime ? {mimeType: recMime} : {}); recChunks = [];
+    rec.ondataavailable = e => recChunks.push(e.data); rec.onstop = () => { recBlob = new Blob(recChunks, {type: rec.mimeType}); stream.getTracks().forEach(t => t.stop()); btn.textContent = '● Record again'; btn.classList.remove('rec'); st.innerHTML = `recorded ${(recBlob.size/1024).toFixed(0)} KB · <audio controls src="${URL.createObjectURL(recBlob)}" style="width:220px;vertical-align:middle"></audio>`; };
+    rec.start(); btn.textContent = '■ Stop'; btn.classList.add('rec'); st.textContent = 'recording…'; } catch (e) { st.textContent = 'Microphone not available: ' + e.message; } }
+async function sendMessage() { const w = document.getElementById('msgWhen').value; const body = {from_name: document.getElementById('msgFrom').value || 'Family', transcript: document.getElementById('msgText').value.trim()};
+  if (w === 'date') body.play_from = body.play_until = document.getElementById('msgFrom_d').value; if (w === 'range') { body.play_from = document.getElementById('msgFrom_d').value; body.play_until = document.getElementById('msgTo_d').value; body.repeat_daily = true; }
+  if (recBlob) { body.audio_base64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(recBlob); }); body.mime = recBlob.type || recMime || 'audio/webm'; }
+  if (!body.transcript && !body.audio_base64) return alert('Record something or type a message.');
+  await post(`/api/persons/${PID}/messages`, body); recBlob = null; document.getElementById('msgText').value = ''; document.getElementById('recState').textContent = ''; document.getElementById('recBtn').textContent = '● Record'; document.getElementById('msgState').textContent = 'Queued for Margaret.'; setTimeout(() => document.getElementById('msgState').textContent = '', 2500); load(); }
+load(); setInterval(() => { if (!(rec && rec.state === 'recording')) load(); }, 5000);
 </script>
 </body>
 </html>

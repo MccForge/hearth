@@ -5,25 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hearth · Alexa+ simulator</title>
 <style>
-  :root { --bg:#f7f3ee; --ink:#2b2622; --muted:#7a716a; --line:#e7dfd6; --accent:#b5542d; --alexa:#1e3a5f; }
+  :root { --bg:#f7f3ee; --ink:#2b2622; --muted:#7a716a; --line:#e7dfd6; --accent:#b5542d; }
   * { box-sizing:border-box } body { margin:0; font:15px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--bg) }
-  header { display:flex; align-items:center; gap:14px; padding:16px 24px; border-bottom:1px solid var(--line); background:#fff }
+  header { display:flex; align-items:center; gap:14px; padding:14px 24px; border-bottom:1px solid var(--line); background:#fff }
   header h1 { font-size:22px; margin:0 } header h1 span { color:var(--accent) } header .tag { color:var(--muted); font-size:14px }
   header nav { margin-left:auto; display:flex; gap:14px } header nav a { color:var(--accent); text-decoration:none; font-weight:600 }
-  main { max-width:1180px; margin:0 auto; padding:20px 24px; display:grid; grid-template-columns: 1.1fr 1fr; gap:18px }
+  main { max-width:1220px; margin:0 auto; padding:20px 24px; display:grid; grid-template-columns: 1.15fr 1fr; gap:18px; align-items:start }
   .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px }
-  .card h2 { margin:0 0 12px; font-size:15px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted) }
-  .device { background:linear-gradient(160deg,#0f1f36,#1e3a5f); color:#fff; border-radius:18px; padding:16px; min-height:420px; display:flex; flex-direction:column }
+  .card h2 { margin:0 0 12px; font-size:14px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted) }
+  .device { background:linear-gradient(160deg,#0f1f36,#1e3a5f); color:#fff; border-radius:18px; padding:16px; min-height:440px; display:flex; flex-direction:column }
   .ring { width:14px; height:14px; border-radius:50%; background:#1fb6ff; box-shadow:0 0 12px #1fb6ff; display:inline-block; margin-right:8px; vertical-align:middle }
-  .ring.idle { background:#4b5b70; box-shadow:none }
-  .chat { flex:1; overflow:auto; margin:12px 0; display:flex; flex-direction:column; gap:8px }
-  .b { max-width:85%; padding:9px 13px; border-radius:14px; line-height:1.4 } .b.a { background:rgba(255,255,255,.12); align-self:flex-start; border-bottom-left-radius:4px }
-  .b.u { background:#f0d9c9; color:var(--ink); align-self:flex-end; border-bottom-right-radius:4px }
-  .b .who { font-size:11px; opacity:.7; margin-bottom:2px }
+  .ring.idle { background:#4b5b70; box-shadow:none } .ring.play { background:#f2c14e; box-shadow:0 0 12px #f2c14e }
+  .chat { flex:1; overflow:auto; margin:12px 0; display:flex; flex-direction:column; gap:8px; max-height:420px }
+  .b { max-width:86%; padding:9px 13px; border-radius:14px; line-height:1.4 } .b.a { background:rgba(255,255,255,.12); align-self:flex-start; border-bottom-left-radius:4px }
+  .b.u { background:#f0d9c9; color:var(--ink); align-self:flex-end; border-bottom-right-radius:4px } .b.m { background:rgba(242,193,78,.22); align-self:flex-start; border:1px solid rgba(242,193,78,.5) }
+  .b .who { font-size:11px; opacity:.75; margin-bottom:2px }
   .inrow { display:flex; gap:8px } .inrow input { flex:1; font:inherit; padding:9px 12px; border-radius:10px; border:1px solid var(--line) }
   button { font:inherit; padding:8px 12px; border-radius:9px; border:1px solid var(--line); background:#fff; cursor:pointer } button.primary { background:var(--accent); color:#fff; border-color:var(--accent) }
-  button:disabled { opacity:.5; cursor:default } .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px } .chips button { font-size:13px; padding:5px 10px; background:#faf6f1 }
-  .tools { font-family:ui-monospace, Consolas, monospace; font-size:12.5px } .call { border:1px solid var(--line); border-radius:8px; margin:6px 0; overflow:hidden }
+  button:disabled { opacity:.5; cursor:default } button.rec { background:#c8322b; color:#fff; border-color:#c8322b }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px } .chips button { font-size:13px; padding:5px 10px; background:#faf6f1 }
+  .tools { font-family:ui-monospace, Consolas, monospace; font-size:12.5px; max-height:620px; overflow:auto } .call { border:1px solid var(--line); border-radius:8px; margin:6px 0; overflow:hidden }
   .call summary { padding:7px 10px; cursor:pointer; background:#faf6f1 } .call summary b { color:var(--accent) } .call pre { margin:0; padding:8px 10px; white-space:pre-wrap; max-height:220px; overflow:auto; background:#fff }
   .note { color:var(--muted); font-size:13px } .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
   select { font:inherit; padding:6px 8px; border-radius:8px; border:1px solid var(--line) }
@@ -42,16 +43,17 @@
         <button class="primary" id="startBtn" onclick="start()">Start morning check-in</button>
         <select id="mode"><option value="scripted">Scripted host (no API key)</option><option value="llm">LLM host (OpenAI-compatible endpoint)</option></select>
         <label class="note"><input type="checkbox" id="speak" checked> Speak Hearth's lines</label>
-        <button id="micBtn" onclick="listen()" title="Use the browser microphone (Chrome)">🎤</button>
+        <button id="micBtn" onclick="listen()" title="Answer by voice (Chrome)">🎤 Answer</button>
+        <button id="noteBtn" onclick="toggleNote()" title="Record a voice note for the family">● Voice note for family</button>
       </div>
       <div class="device"><div><span class="ring idle" id="ring"></span><span id="devState">Echo (simulated) · idle</span></div>
-        <div class="chat" id="chat"><div class="note" style="color:#c9d6e5">Press “Start morning check-in”. Answer as Margaret would. Try “I fell getting to the bathroom”, “I forgot my pills”, “call my daughter”, or “not now, later”.</div></div>
+        <div class="chat" id="chat"><div class="note" style="color:#c9d6e5">Press “Start morning check-in”. Answer as Margaret would. If Anna left a message it plays first. Try “I fell getting to the bathroom”, “slept well and took my pills with my toast”, “tell Anna I love her”, “I have the dentist on Friday at 10”, “call my daughter”, or “not now, later”.</div></div>
         <div class="inrow"><input id="txt" placeholder="Say something as Margaret…" onkeydown="if(event.key==='Enter')send()" disabled><button class="primary" id="sendBtn" onclick="send()" disabled>Say</button></div>
       </div>
       <div class="chips" id="chips"></div>
     </div>
     <div class="card" style="margin-top:18px"><h2>Caregiver voice query</h2>
-      <div class="row"><button onclick="askStatus()">“Alexa, how is Mom today?”</button><span class="note">calls <code>get_status</code> and reads the answer</span></div>
+      <div class="row"><button onclick="askStatus()">“Alexa, how is Mom today?”</button><button onclick="askEvents()">“What's on Mom's calendar?”</button><span class="note">calls <code>get_status</code> / <code>list_events</code></span></div>
       <div id="statusOut" style="margin-top:8px"></div></div>
   </section>
   <section>
@@ -60,27 +62,43 @@
   </section>
 </main>
 <script>
-let session = null, done = false;
+let session = null, done = false, noteRec = null, noteChunks = [], noteText = '';
 const post = (u, b) => fetch(u, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(b)}).then(r => r.json());
 const chat = document.getElementById('chat'), tools = document.getElementById('tools');
-const CHIPS = ['Pretty good, thank you', 'Not great, my knee kept me up', 'I fell getting to the bathroom', 'No, I forgot my pills', 'Yes, with breakfast', 'Toast and an egg', 'Nothing really', 'Feeling a bit lonely today', 'Anna is calling later', 'Call my daughter', 'Not now, later'];
+const CHIPS = ['Pretty good, thank you', 'Not great, my knee kept me up', 'I fell getting to the bathroom', "No, I'm not hurt, I got right up", 'Slept well and took my pills with my toast', 'No, I forgot my pills', 'Yes, with breakfast', 'Toast and an egg', 'Nothing really', 'Feeling a bit lonely today', 'Yes, Tom is picking me up at half one', 'He came Tuesday, all fixed', 'The garden, then a nap', 'I have the dentist on Friday at 10', 'Tell Anna I love her', 'Call my daughter', 'Not now, later', 'Pardon?'];
 document.getElementById('chips').innerHTML = CHIPS.map(c => `<button onclick="say(${JSON.stringify(c)})">${c}</button>`).join('');
-function bubble(who, text) { const d = document.createElement('div'); d.className = 'b ' + (who === 'Hearth' ? 'a' : 'u'); d.innerHTML = `<div class="who">${who}</div>${text}`; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; }
-function speak(text) { if (!document.getElementById('speak').checked || !window.speechSynthesis) return; const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; u.pitch = 1.05; speechSynthesis.cancel(); speechSynthesis.speak(u); }
-function setState(s, on) { document.getElementById('devState').textContent = 'Echo (simulated) · ' + s; document.getElementById('ring').className = 'ring' + (on ? '' : ' idle'); }
+function bubble(who, text, cls) { const d = document.createElement('div'); d.className = 'b ' + (cls || (who === 'Hearth' ? 'a' : 'u')); d.innerHTML = `<div class="who">${who}</div>${text}`; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; return d; }
+function speak(text) { return new Promise(res => { if (!document.getElementById('speak').checked || !window.speechSynthesis) return res(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; u.pitch = 1.05; u.onend = res; u.onerror = res; speechSynthesis.cancel(); speechSynthesis.speak(u); }); }
+function playAudio(url) { return new Promise(res => { const a = new Audio(url); a.onended = res; a.onerror = res; a.play().catch(res); }); }
+function setState(s, cls) { document.getElementById('devState').textContent = 'Echo (simulated) · ' + s; document.getElementById('ring').className = 'ring' + (cls ? ' ' + cls : ''); }
 function showCalls(calls) { if (!calls || !calls.length) return; if (tools.querySelector('.note')) tools.innerHTML = '';
-  calls.forEach(c => { const d = document.createElement('details'); d.className = 'call'; d.innerHTML = `<summary><b>${c.tool}</b>(${Object.entries(c.args).map(([k, v]) => k + '=' + JSON.stringify(v)).join(', ')})</summary><pre>${JSON.stringify(c.result, null, 1)}</pre>`; tools.appendChild(d); }); tools.scrollTop = tools.scrollHeight; }
-async function start() { chat.innerHTML = ''; tools.innerHTML = '<div class="note">No calls yet.</div>'; done = false; setState('listening', true);
-  const r = await post('/api/sim/start', {person_id: 1, mode: document.getElementById('mode').value}); session = r.session_id;
-  bubble('Hearth', r.agent); speak(r.agent); showCalls(r.tool_calls); enable(!r.done); if (r.done) setState('idle', false); }
+  calls.forEach(c => { const d = document.createElement('details'); d.className = 'call'; d.innerHTML = `<summary><b>${c.tool}</b>(${Object.entries(c.args).map(([k, v]) => k + '=' + JSON.stringify(typeof v === 'string' && v.length > 60 ? v.slice(0, 60) + '…' : v)).join(', ')})</summary><pre>${JSON.stringify(c.result, null, 1)}</pre>`; tools.appendChild(d); }); tools.scrollTop = tools.scrollHeight; }
 function enable(on) { document.getElementById('txt').disabled = !on; document.getElementById('sendBtn').disabled = !on; if (on) document.getElementById('txt').focus(); }
-async function say(text) { if (!session || done) return; bubble('Margaret', text); setState('thinking', true);
-  const r = await post('/api/sim/turn', {session_id: session, text}); bubble('Hearth', r.agent); speak(r.agent); showCalls(r.tool_calls);
-  if (r.done) { done = true; enable(false); setState('idle', false); } else setState('listening', true); }
+async function start() { chat.innerHTML = ''; tools.innerHTML = '<div class="note">No calls yet.</div>'; done = false; setState('listening', '');
+  const r = await post('/api/sim/start', {person_id: 1, mode: document.getElementById('mode').value}); session = r.session_id; showCalls(r.tool_calls);
+  for (const m of (r.messages || [])) bubble(`Message from ${m.from}${m.has_audio ? ' 🔊' : ''}`, m.transcript ? `“${m.transcript}”` : '(voice message)', 'm');
+  bubble('Hearth', r.agent);
+  if ((r.play_audio || []).length) { setState('playing message', 'play'); for (const u of r.play_audio) await playAudio(u); }
+  setState('speaking', ''); await speak(r.agent); setState(r.done ? 'idle' : 'listening', r.done ? 'idle' : ''); enable(!r.done); }
+async function say(text) { if (!session || done) return; bubble('Margaret', text); setState('thinking', '');
+  const r = await post('/api/sim/turn', {session_id: session, text}); bubble('Hearth', r.agent); showCalls(r.tool_calls); setState('speaking', ''); await speak(r.agent);
+  if (r.done) { done = true; enable(false); setState('idle', 'idle'); } else setState('listening', ''); }
 function send() { const t = document.getElementById('txt'); const v = t.value.trim(); if (!v) return; t.value = ''; say(v); }
-function listen() { const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) { alert('Speech recognition needs Chrome.'); return; } const r = new SR(); r.lang = 'en-US'; r.onresult = e => { const v = e.results[0][0].transcript; document.getElementById('txt').value = v; send(); }; r.start(); }
+function listen() { const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) { alert('Speech recognition needs Chrome.'); return; } const r = new SR(); r.lang = 'en-US'; setState('listening (mic)', ''); r.onresult = e => { document.getElementById('txt').value = e.results[0][0].transcript; send(); }; r.onerror = () => setState('listening', ''); r.start(); }
+async function toggleNote() { const btn = document.getElementById('noteBtn');
+  if (noteRec && noteRec.state === 'recording') { noteRec.stop(); return; }
+  try { const stream = await navigator.mediaDevices.getUserMedia({audio: true}); const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : ''); noteRec = new MediaRecorder(stream, mime ? {mimeType: mime} : {}); noteChunks = []; noteText = '';
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let sr = null; if (SR) { sr = new SR(); sr.lang = 'en-US'; sr.continuous = true; sr.interimResults = false; sr.onresult = e => { for (const res of e.results) noteText += res[0].transcript + ' '; }; try { sr.start(); } catch (e) {} }
+    noteRec.ondataavailable = e => noteChunks.push(e.data);
+    noteRec.onstop = async () => { stream.getTracks().forEach(t => t.stop()); if (sr) try { sr.stop(); } catch (e) {} await new Promise(r => setTimeout(r, 600));
+      const blob = new Blob(noteChunks, {type: noteRec.mimeType}); const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
+      const transcript = noteText.trim() || prompt('No speech recognition available. What did Margaret say?') || '(voice note)';
+      const r = await post('/api/persons/1/replies', {transcript, audio_base64: b64, mime: blob.type || mime || 'audio/webm'}); showCalls([{tool: 'record_reply', args: {person_id: 1, transcript, audio: (blob.size/1024).toFixed(0) + ' KB'}, result: r}]);
+      bubble('Margaret 🔊', `“${transcript}”`); bubble('Hearth', r.say || 'Saved.'); speak(r.say || 'Saved.'); btn.textContent = '● Voice note for family'; btn.classList.remove('rec'); setState(done ? 'idle' : 'listening', done ? 'idle' : ''); };
+    noteRec.start(); btn.textContent = '■ Stop & send'; btn.classList.add('rec'); setState('recording voice note', 'play'); } catch (e) { alert('Microphone not available: ' + e.message); } }
 async function askStatus() { const s = await post('/api/tool', {tool: 'get_status', args: {person_id: 1}}); const st = {checked_in: 'has checked in', in_progress: 'is checking in right now', waiting: "hasn't checked in yet, but the window is still open", before_window: "hasn't started her day yet", overdue: "has NOT checked in and the window has closed"}[s.state] || s.state;
-  const line = `Mom ${st}. ${s.summary || ''} ${s.open_alerts ? s.open_alerts + ' open alert' + (s.open_alerts > 1 ? 's' : '') + '.' : 'No open alerts.'}`; document.getElementById('statusOut').textContent = line; speak(line); showCalls([{tool: 'get_status', args: {person_id: 1}, result: s}]); }
+  const line = `Mom ${st}. ${s.summary || ''} ${s.open_alerts ? s.open_alerts + ' open alert' + (s.open_alerts > 1 ? 's' : '') + '.' : 'No open alerts.'}${(s.trend_insights || []).length ? ' This week: ' + s.trend_insights.join(' ') : ''}`; document.getElementById('statusOut').textContent = line; speak(line); showCalls([{tool: 'get_status', args: {person_id: 1}, result: s}]); }
+async function askEvents() { const r = await post('/api/tool', {tool: 'list_events', args: {person_id: 1, days: 7}}); const line = r.events.length ? 'Coming up: ' + r.events.map(e => `${e.title}${e.time ? ' at ' + e.time : ''} on ${e.date}`).join('; ') + '.' : 'Nothing on the calendar this week.'; document.getElementById('statusOut').textContent = line; speak(line); showCalls([{tool: 'list_events', args: {person_id: 1, days: 7}, result: r}]); }
 </script>
 </body>
 </html>
