@@ -214,7 +214,7 @@ async function speakPolly(text, who) { try { const r = await fetch('/api/tts?who
   await new Promise(res => { const a = new Audio(url); a.onended = res; a.onerror = res; a.play().catch(res); }); URL.revokeObjectURL(url); return true; } catch (e) { return false; } }
 function speak(text, who) { return new Promise(async res => { if (!document.getElementById('speak').checked || !text) return res(); if (NARRATION === 'polly' && await speakPolly(text, who)) return res(); if (!window.speechSynthesis) return res();
   const u = new SpeechSynthesisUtterance(text); const sel = document.getElementById(who === 'margaret' ? 'voiceMargaret' : 'voiceHearth'); const v = sel && voiceById(sel.value); if (v) u.voice = v;
-  u.rate = who === 'margaret' ? 0.9 : 0.97; u.pitch = who === 'margaret' ? 0.95 : 1.05; let done = false; const fin = () => { if (!done) { done = true; res(); } };
+  u.rate = who === 'margaret' ? 0.95 : 1.02; u.pitch = who === 'margaret' ? 0.95 : 1.05; let done = false; const fin = () => { if (!done) { done = true; res(); } };
   u.onend = fin; u.onerror = fin; setTimeout(fin, 1200 + text.length * 65); speechSynthesis.cancel(); speechSynthesis.speak(u); }); }
 function fillVoices() { const vs = (speechSynthesis.getVoices() || []).filter(v => v.lang && v.lang.toLowerCase().startsWith('en')); if (!vs.length) return;
   const score = (v, pref) => pref.reduce((a, p, i) => a + (v.name.toLowerCase().includes(p) ? (pref.length - i) * 10 : 0), 0) + (v.localService ? 0 : 1) - (/david|mark|george|guy|ryan|male/i.test(v.name) ? 50 : 0);
@@ -242,7 +242,8 @@ async function start() {
 }
 // ------------------------------------------------------------------ auto-play demo: the whole check-in, both voices, no hands
 const MARGARET = [                                                          // [what Hearth is asking, what Margaret says]
-  [/hurt|pain|dizz|move around|get up|injur/i, "No, I'm not hurt. I got right up, just felt silly."],
+  [/hurt|injur|get up|dizz/i, "No, I'm not hurt. I got right up, just felt silly."],
+  [/move around|moving|stiff|normally|walk/i, "Yes, I'm getting about fine. Just a bit stiff first thing, same as always."],
   [/more about that|tell me more|what happened|making today hard/i, "Oh, it's just my knee. It's better once I'm up and moving."],
   [/check the pill|pill box|take (it|them) now/i, "Yes, I've taken them now."],
   [/plumber|tap|kitchen/i, "He came on Tuesday, love. All fixed."],
@@ -278,7 +279,7 @@ async function runDemo() {
     await start();                                                             // greeting + Anna's message, spoken
     let guard = 0;
     while (!done && guard++ < 14) {
-      await pause(700);
+      await pause(450);
       const line = margaretLine(lastAgentLine);
       setState('Margaret speaking', 'listen'); const cap = document.getElementById('caption'); cap.innerHTML = `<div class="you">“${esc(line)}”</div>`; cap.classList.add('on'); echo.notifyResize();
       await speak(line, 'margaret'); await pause(150);
@@ -287,7 +288,7 @@ async function runDemo() {
     await pause(1400);
     chapter('Meanwhile', "On Anna's phone: the summary arrived. She asks her own Alexa+: \"How is Mom today?\"");
     await askStatus();                                                         // Anna asks her own device how Mom is
-    await pause(2500);
+    await pause(1800);
     chapter('Hearth', 'An MCP server for Alexa+: fourteen tools, on-screen cards, family voice messages, an escalation ladder, and a dashboard. github.com/MccForge/hearth');
   } finally { demoRunning = false; btn.disabled = false; btn.textContent = '▶ Run demo'; }
 }
