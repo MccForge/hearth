@@ -4,10 +4,10 @@ from __future__ import annotations
 import asyncio, base64, contextlib, datetime as dt, os
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import FileResponse, JSONResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
-from . import db, core, escalation, agent, auth
+from . import db, core, escalation, agent, auth, ui
 from .mcp_server import server, TOOLS, AUTH_PROVIDER
 
 WEB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
@@ -162,6 +162,19 @@ async def api_tool(request: Request):
     return JSONResponse(agent._serialize(TOOLS[name](**body.get("args", {}))))
 
 
+async def api_ui_manifest(request: Request):
+    """Tool -> view mapping and view metadata, as a host learns them from tools/list and resources/list (MCP Apps)."""
+    return JSONResponse(ui.manifest(server))
+
+
+async def api_ui_resource(request: Request):
+    """The HTML of one ui:// view, as resources/read returns it."""
+    if request.query_params.get("reload"):               # development aid: pick up edits to ui.py without a restart
+        import importlib; importlib.reload(ui)
+    v = ui.VIEWS.get(request.query_params.get("uri", ""))
+    return HTMLResponse(v["html"]) if v else JSONResponse({"error": "unknown view"}, status_code=404)
+
+
 async def api_watchdog(request: Request):
     return JSONResponse({"created": escalation.run_once()})
 
@@ -206,6 +219,7 @@ app = Starlette(routes=[
     Route("/api/alerts/{aid:int}/ack", api_ack, methods=["POST"]),
     Route("/api/sim/start", api_sim_start, methods=["POST"]), Route("/api/sim/turn", api_sim_turn, methods=["POST"]),
     Route("/api/tool", api_tool, methods=["POST"]), Route("/api/watchdog/run", api_watchdog, methods=["POST"]),
+    Route("/api/ui/manifest", api_ui_manifest), Route("/api/ui/resource", api_ui_resource),
     Route("/api/demo/missed", api_demo_missed, methods=["POST"]), Route("/api/demo/reset", api_demo_reset, methods=["POST"]),
     *(auth.override_routes(mcp_app, AUTH_PROVIDER) if AUTH_PROVIDER else []),
     Mount("/static", app=StaticFiles(directory=WEB), name="static"),

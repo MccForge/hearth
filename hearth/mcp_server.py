@@ -3,9 +3,10 @@ Transport: Streamable HTTP (MCP spec 2025-11-25) at /mcp, mounted by app.py. The
 in-process by the simulator, so the demo exercises exactly the code path a real host would."""
 from __future__ import annotations
 import base64, datetime as dt, json, os, re
+from typing import Any
 from mcp.server.mcpserver import MCPServer
 from mcp.types import AudioContent, TextContent
-from . import db, core, auth
+from . import db, core, auth, ui
 
 AUTH_PROVIDER = auth.HearthAuthProvider(auth.public_url()) if auth.enabled() else None
 server = MCPServer(
@@ -98,8 +99,8 @@ def _events_for_context(p: dict, date: str) -> tuple[list[dict], list[dict]]:
 
 @server.tool(description="Everything the agent needs before greeting the person: name, time of day, medications due, yesterday's summary, "
                          "family voice messages to play first, questions the family asked, today's appointments and reminders, who is away, "
-                         "trend insights, the topics to cover, tone, and safety rules. Call this first.")
-def get_checkin_context(person_id: int = 0) -> dict:
+                         "trend insights, the topics to cover, tone, and safety rules. Call this first.", meta=ui.ui_meta("checkin"))
+def get_checkin_context(person_id: int = 0) -> dict[str, Any]:
     p, err = _person_or_error(person_id)
     if err: return err
     person_id = p["id"]
@@ -130,7 +131,7 @@ def get_checkin_context(person_id: int = 0) -> dict:
 
 
 @server.tool(description="Fetch a family message to play to the person: returns the audio (if recorded) and the transcript. "
-                         "Play it right after the greeting, then call mark_message_played.")
+                         "Play it right after the greeting, then call mark_message_played.", meta=ui.ui_meta("checkin"))
 def get_family_message(message_id: int) -> list:
     m = db.message(message_id)
     if not m: return [TextContent(type="text", text=json.dumps({"error": f"no message {message_id}"}))]
@@ -144,7 +145,7 @@ def get_family_message(message_id: int) -> list:
 
 
 @server.tool(description="Mark a family message as played so it is not repeated (daily-repeat messages play again tomorrow).")
-def mark_message_played(message_id: int) -> dict:
+def mark_message_played(message_id: int) -> dict[str, Any]:
     m = db.message(message_id)
     if not m: return {"error": f"no message {message_id}"}
     if m.get("repeat_daily") and m.get("play_until") and m["play_until"] >= dt.date.today().isoformat():
@@ -156,8 +157,8 @@ def mark_message_played(message_id: int) -> dict:
 
 
 @server.tool(description="Open today's check-in record. A completed check-in from earlier today is kept in history and a fresh record is started; "
-                         "an unfinished one is resumed. Returns the checkin_id used by record_answer and complete_checkin.")
-def start_checkin(person_id: int = 0) -> dict:
+                         "an unfinished one is resumed. Returns the checkin_id used by record_answer and complete_checkin.", meta=ui.ui_meta("checkin"))
+def start_checkin(person_id: int = 0) -> dict[str, Any]:
     p, err = _person_or_error(person_id)
     if err: return err
     person_id = p["id"]
@@ -174,8 +175,8 @@ def start_checkin(person_id: int = 0) -> dict:
 
 @server.tool(description="Record one answer. field: mood, sleep, meds_taken, ate, concern, plans, note, 'question:<id>' or 'event:<id>'. "
                          "value is the interpreted answer (1-5, yes/no, or text); quote is what the person actually said. "
-                         "Returns flags detected, the concern score, and a follow_up hint when something deserves a gentle second question.")
-def record_answer(checkin_id: int, field: str, value: str, quote: str = "") -> dict:
+                         "Returns flags detected, the concern score, and a follow_up hint when something deserves a gentle second question.", meta=ui.ui_meta("checkin"))
+def record_answer(checkin_id: int, field: str, value: str, quote: str = "") -> dict[str, Any]:
     c = db.checkin(checkin_id)
     if not c: return {"error": f"no check-in {checkin_id}"}
     updates: dict = {}
@@ -220,8 +221,8 @@ def record_answer(checkin_id: int, field: str, value: str, quote: str = "") -> d
 
 
 @server.tool(description="Finish the check-in: scores concern level, writes a one-paragraph summary for the family (with weekly trend insights when notable), "
-                         "sends it to the primary contact, escalates to more contacts if the concern level is high, and clears missed-check-in alerts.")
-def complete_checkin(checkin_id: int, summary: str = "") -> dict:
+                         "sends it to the primary contact, escalates to more contacts if the concern level is high, and clears missed-check-in alerts.", meta=ui.ui_meta("checkin"))
+def complete_checkin(checkin_id: int, summary: str = "") -> dict[str, Any]:
     c = db.checkin(checkin_id)
     if not c: return {"error": f"no check-in {checkin_id}"}
     p = db.person(c["person_id"])
@@ -248,8 +249,8 @@ def complete_checkin(checkin_id: int, summary: str = "") -> dict:
             "escalation": escalation, "missed_alerts_resolved": resolved, "closing_line": closing}
 
 
-@server.tool(description="The person asked for help or described an emergency. Alerts every contact immediately with the reason. urgency: urgent (default) or concern.")
-def request_help(person_id: int, reason: str, urgency: str = "urgent") -> dict:
+@server.tool(description="The person asked for help or described an emergency. Alerts every contact immediately with the reason. urgency: urgent (default) or concern.", meta=ui.ui_meta("checkin"))
+def request_help(person_id: int, reason: str, urgency: str = "urgent") -> dict[str, Any]:
     p, err = _person_or_error(person_id)
     if err: return err
     person_id = p["id"]
@@ -259,8 +260,8 @@ def request_help(person_id: int, reason: str, urgency: str = "urgent") -> dict:
 
 
 @server.tool(description="The person wants to send a message to family ('tell Anna I love her'). Stores the transcript and optional audio "
-                         "(base64) as a voice note the family sees in the dashboard. contact_name is optional; defaults to the primary contact.")
-def record_reply(person_id: int, transcript: str, contact_name: str = "", audio_base64: str = "", mime: str = "audio/webm") -> dict:
+                         "(base64) as a voice note the family sees in the dashboard. contact_name is optional; defaults to the primary contact.", meta=ui.ui_meta("checkin"))
+def record_reply(person_id: int, transcript: str, contact_name: str = "", audio_base64: str = "", mime: str = "audio/webm") -> dict[str, Any]:
     p, err = _person_or_error(person_id)
     if err: return err
     person_id = p["id"]
@@ -278,8 +279,8 @@ def record_reply(person_id: int, transcript: str, contact_name: str = "", audio_
 
 
 @server.tool(description="Add an appointment or reminder for the person ('remind me I have the dentist Friday at 10'). date is YYYY-MM-DD, time HH:MM optional. "
-                         "It is raised during the check-in on that day, with a heads-up the day before when remind_day_before is true.")
-def add_event(person_id: int, date: str, title: str, time: str = "", kind: str = "appointment", notes: str = "", added_by: str = "", remind_day_before: bool = True) -> dict:
+                         "It is raised during the check-in on that day, with a heads-up the day before when remind_day_before is true.", meta=ui.ui_meta("calendar"))
+def add_event(person_id: int, date: str, title: str, time: str = "", kind: str = "appointment", notes: str = "", added_by: str = "", remind_day_before: bool = True) -> dict[str, Any]:
     p, err = _person_or_error(person_id)
     if err: return err
     person_id = p["id"]
@@ -292,8 +293,8 @@ def add_event(person_id: int, date: str, title: str, time: str = "", kind: str =
     return {"ok": True, "event_id": eid, "say": f"Got it, {title} on {dt.date.fromisoformat(date).strftime('%A %B %-d') if os.name != 'nt' else dt.date.fromisoformat(date).strftime('%A %B %d').replace(' 0', ' ')}{' at ' + _fmt_time(time) if time else ''}. I'll remind you."}
 
 
-@server.tool(description="Upcoming appointments and reminders for the next N days (default 7).")
-def list_events(person_id: int = 0, days: int = 7) -> dict:
+@server.tool(description="Upcoming appointments and reminders for the next N days (default 7).", meta=ui.ui_meta("calendar"))
+def list_events(person_id: int = 0, days: int = 7) -> dict[str, Any]:
     p, err = _person_or_error(person_id)
     if err: return err
     person_id = p["id"]
@@ -302,8 +303,8 @@ def list_events(person_id: int = 0, days: int = 7) -> dict:
     return {"events": [{"id": e["id"], "date": e["date"], "time": _fmt_time(e.get("time") or ""), "title": e["title"], "kind": e["kind"], "status": e["status"], "notes": e.get("notes") or ""} for e in rows]}
 
 
-@server.tool(description="Caregiver query, e.g. 'how is Mom today?': today's check-in state, concern level, summary, open alerts, pending messages, who is away.")
-def get_status(person_id: int = 0) -> dict:
+@server.tool(description="Caregiver query, e.g. 'how is Mom today?': today's check-in state, concern level, summary, open alerts, pending messages, who is away.", meta=ui.ui_meta("status"))
+def get_status(person_id: int = 0) -> dict[str, Any]:
     p, err = _person_or_error(person_id)
     if err: return err
     person_id = p["id"]
@@ -313,16 +314,16 @@ def get_status(person_id: int = 0) -> dict:
     return st
 
 
-@server.tool(description="The person wants to talk later. Pauses the missed-check-in escalation for the given minutes (max 180).")
-def snooze_checkin(person_id: int = 0, minutes: int = 30) -> dict:
+@server.tool(description="The person wants to talk later. Pauses the missed-check-in escalation for the given minutes (max 180).", meta=ui.ui_meta("checkin"))
+def snooze_checkin(person_id: int = 0, minutes: int = 30) -> dict[str, Any]:
     minutes = max(5, min(180, int(minutes)))
     until = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=minutes)).replace(microsecond=0).isoformat()
     db.execute("INSERT INTO snoozes(person_id, until) VALUES (?,?) ON CONFLICT(person_id) DO UPDATE SET until=excluded.until", (person_id, until))
     return {"ok": True, "snoozed_until": until, "say": f"No problem, I'll check back in {minutes} minutes."}
 
 
-@server.tool(description="Record that a medication was taken (or explicitly not taken) outside the check-in flow.")
-def log_medication(person_id: int, medication: str, taken: bool = True) -> dict:
+@server.tool(description="Record that a medication was taken (or explicitly not taken) outside the check-in flow.", meta=ui.ui_meta("checkin"))
+def log_medication(person_id: int, medication: str, taken: bool = True) -> dict[str, Any]:
     p, err = _person_or_error(person_id)
     if err: return err
     person_id = p["id"]
@@ -336,7 +337,7 @@ def log_medication(person_id: int, medication: str, taken: bool = True) -> dict:
 
 
 @server.tool(description="List the people this Hearth instance looks after (a real deployment maps the device to one person via account linking).")
-def list_persons() -> dict:
+def list_persons() -> dict[str, Any]:
     return {"persons": [{"id": p["id"], "name": p["name"], "nickname": p.get("nickname"), "timezone": p["timezone"], "window": f"{p['window_start']}-{p['window_end']}"} for p in db.persons()]}
 
 
@@ -364,6 +365,8 @@ def daily_checkin(person_id: int) -> str:
             "If they want to send a message to family, call record_reply. If they mention a future appointment, call add_event. "
             "Style: warm, unhurried, short sentences. Never give medical advice.")
 
+
+ui.register(server)
 
 TOOLS = {f.__name__: f for f in (get_checkin_context, get_family_message, mark_message_played, start_checkin, record_answer, complete_checkin,
                                   request_help, record_reply, add_event, list_events, get_status, snooze_checkin, log_medication, list_persons)}
