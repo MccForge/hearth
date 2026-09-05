@@ -122,7 +122,8 @@ Every message is written to the dashboard feed. Email (SMTP) and webhooks are wi
 | `HEARTH_DB`, `HEARTH_MEDIA` | SQLite path, audio folder |
 | `HEARTH_WATCHDOG_SECONDS` | Ladder evaluation interval (default 60) |
 | `HEARTH_SMTP_HOST/PORT/USER/PASS/FROM` | Enable email to contacts with `channel=email` |
-| `HEARTH_LLM_BASE_URL/API_KEY/MODEL` | Optional: run the simulator with a real LLM host over any OpenAI-compatible endpoint, e.g. Amazon Bedrock: base URL `https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1`, a Bedrock API key, model `openai.gpt-oss-120b` |
+| `HEARTH_LLM_BASE_URL/API_KEY/MODEL` | Optional: run the simulator with a real LLM host. Amazon Bedrock Converse API (Claude, Nova): base URL `https://bedrock-runtime.us-west-2.amazonaws.com`, a Bedrock API key, model `us.anthropic.claude-sonnet-4-6`. Or any OpenAI-compatible endpoint (Bedrock Mantle, Groq, OpenAI): base URL ending in `/v1`, model e.g. `openai.gpt-oss-120b` |
+| `HEARTH_LLM_PROTOCOL` | `converse` (Bedrock Converse API) or `chat` (OpenAI chat completions). Inferred from the base URL when unset |
 | `HEARTH_PUBLIC_URL` | Public HTTPS base URL. Setting it turns on OAuth for `/mcp` and the account-linking page |
 | `HEARTH_OAUTH_CLIENT_ID/SECRET` | The fixed client Alexa+ uses (from the developer console) |
 | `HEARTH_OAUTH_REDIRECT_URIS` | Comma-separated Alexa account-linking redirect URIs; any Amazon `/api/skill/link/` URI is also accepted |

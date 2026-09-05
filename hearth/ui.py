@@ -168,8 +168,9 @@ function onResult(tool, args, res) {
     case 'start_checkin': (sc.answered || []).forEach(f => { if (LABEL[f] && !S.answered[f]) S.answered[f] = {text: 'Answered earlier', flag: false}; }); advance(); renderSteps(); break;
     case 'record_answer': answered(args.field, args, sc); break;
     case 'complete_checkin': { S.current = null; renderSteps(); const lvl = sc.risk_level || 'ok'; const to = (sc.summary_sent_to || []).join(' and ') || 'your family'; const calm = lvl === 'ok' || lvl === 'watch';
-      $('card').classList.add('done'); $('title').textContent = calm ? 'All done. Have a lovely day.' : 'Thank you for telling me.';
-      foot(calm ? `<span class="ok">✓ ${esc(to)} knows you're doing okay</span>` : `<span class="warn">⚠ Your family is being told right now</span>`); break; }
+      $('card').classList.add('done'); $('title').textContent = calm ? 'All done. Have a lovely day.' : lvl === 'concern' ? 'All done. Take it gently today.' : 'Thank you for telling me.';
+      const told = (sc.escalation && (sc.escalation.notified || []).map(n => n.contact.split(' ')[0]).join(', ')) || to;
+      foot(calm ? `<span class="ok">✓ ${esc(to)} knows you're doing okay</span>` : lvl === 'concern' ? `<span class="warn">✓ ${esc(told)} will know about today · expect a call</span>` : `<span class="bad">⚠ Your family is being told right now</span>`); break; }
     case 'get_family_message': { const audio = (res.content || []).find(b => b.type === 'audio'); const info = parseText(res);
       $('msgTile').classList.remove('hidden'); $('msgFrom').textContent = 'From ' + (info.from || 'family'); if (info.transcript) $('msgTx').textContent = '“' + short(info.transcript, 70) + '”';
       if (audio && audio.data) S.audio = new Audio('data:' + (audio.mimeType || 'audio/webm') + ';base64,' + audio.data); break; }

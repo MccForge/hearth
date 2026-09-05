@@ -3,3 +3,7 @@ __pycache__/
 *.db
 .env
 .pytest_cache/
+*bedrock*
+*Bedrock*
+*api key*
+*API Key*

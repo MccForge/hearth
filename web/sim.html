@@ -63,7 +63,7 @@
     <div class="card">
       <div class="row">
         <button class="primary" id="startBtn" onclick="start()">Start morning check-in</button>
-        <select id="mode"><option value="scripted">Scripted host (no API key)</option><option value="llm">LLM host (OpenAI-compatible endpoint)</option></select>
+        <select id="mode" title="Who runs the conversation"><option value="scripted">Scripted host (no API key)</option></select>
         <label class="note"><input type="checkbox" id="speak" checked> Speak Hearth's lines</label>
         <button id="micBtn" onclick="listen()" title="Answer by voice (Chrome)">🎤 Answer</button>
         <button id="noteBtn" onclick="toggleNote()" title="Record a voice note for the family">● Voice note for family</button>
@@ -196,6 +196,7 @@ document.getElementById('chips').innerHTML = CHIPS.map(c => `<button onclick="sa
 let TZ = undefined; fetch('/api/persons/1').then(r => r.json()).then(p => { TZ = p.person && p.person.timezone; tick(); }).catch(() => {});
 function tick() { const now = new Date(); const t = now.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', timeZone: TZ}); document.getElementById('homeTime').textContent = t; document.getElementById('clock').textContent = t; document.getElementById('phoneTime').textContent = t; document.getElementById('homeDate').textContent = now.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ}); }
 tick(); setInterval(tick, 15000);
+fetch('/api/sim/models').then(r => r.json()).then(j => { const sel = document.getElementById('mode'); (j.models || []).forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; sel.appendChild(o); }); if (j.models && j.models.length) sel.value = j.models[0].id; }).catch(() => {});
 function bubble(who, text, cls) { const d = document.createElement('div'); d.className = 'b ' + (cls || (who === 'Hearth' ? 'a' : 'u')); d.innerHTML = `<div class="who">${esc(who)}</div>${esc(text)}`; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; return d; }
 function caption(text, you) { const c = document.getElementById('caption'); if (!text) { c.classList.remove('on'); } else { c.innerHTML = (you ? `<div class="you">“${esc(you)}”</div>` : '') + esc(text); c.classList.add('on'); } echo.notifyResize(); }
 function speak(text) { return new Promise(res => { if (!document.getElementById('speak').checked || !window.speechSynthesis) return res(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; u.pitch = 1.05; u.onend = res; u.onerror = res; speechSynthesis.cancel(); speechSynthesis.speak(u); }); }
@@ -207,7 +208,7 @@ function enable(on) { document.getElementById('txt').disabled = !on; document.ge
 async function start() {
   chat.innerHTML = ''; tools.innerHTML = '<div class="note">No calls yet.</div>'; done = false; caption(''); setState('listening', 'listen');
   Object.values(echo.views).forEach(v => { BY_WINDOW.delete(v.frame.contentWindow); v.frame.remove(); }); echo.views = {}; echo.show(null);
-  const r = await post('/api/sim/start', {person_id: 1, mode: document.getElementById('mode').value}); session = r.session_id;
+  const sel = document.getElementById('mode').value; const r = await post('/api/sim/start', {person_id: 1, mode: sel === 'scripted' ? 'scripted' : 'llm', model: sel === 'scripted' ? '' : sel}); session = r.session_id;
   await routeCalls(r.tool_calls);
   for (const m of (r.messages || [])) bubble(`Message from ${m.from}${m.has_audio ? ' 🔊' : ''}`, m.transcript ? `“${m.transcript}”` : '(voice message)', 'm');
   bubble('Hearth', r.agent);

@@ -147,7 +147,12 @@ async def api_event_delete(request: Request):
 # ---- simulator and demo ---------------------------------------------------------------
 async def api_sim_start(request: Request):
     body = await request.json()
-    return JSONResponse(agent.start(int(body.get("person_id", 1)), body.get("mode", "scripted")))
+    return JSONResponse(agent.start(int(body.get("person_id", 1)), body.get("mode", "scripted"), str(body.get("model") or "")))
+
+
+async def api_sim_models(request: Request):
+    """LLM hosts available to the simulator (empty when no key is configured; the scripted host always works)."""
+    return JSONResponse({"models": agent.llm_models()})
 
 
 async def api_sim_turn(request: Request):
@@ -217,7 +222,7 @@ app = Starlette(routes=[
     Route("/api/persons/{pid:int}/away", api_away_create, methods=["POST"]), Route("/api/away/{aid:int}", api_away_delete, methods=["DELETE"]),
     Route("/api/persons/{pid:int}/events", api_event_create, methods=["POST"]), Route("/api/events/{eid:int}", api_event_delete, methods=["DELETE"]),
     Route("/api/alerts/{aid:int}/ack", api_ack, methods=["POST"]),
-    Route("/api/sim/start", api_sim_start, methods=["POST"]), Route("/api/sim/turn", api_sim_turn, methods=["POST"]),
+    Route("/api/sim/start", api_sim_start, methods=["POST"]), Route("/api/sim/turn", api_sim_turn, methods=["POST"]), Route("/api/sim/models", api_sim_models),
     Route("/api/tool", api_tool, methods=["POST"]), Route("/api/watchdog/run", api_watchdog, methods=["POST"]),
     Route("/api/ui/manifest", api_ui_manifest), Route("/api/ui/resource", api_ui_resource),
     Route("/api/demo/missed", api_demo_missed, methods=["POST"]), Route("/api/demo/reset", api_demo_reset, methods=["POST"]),

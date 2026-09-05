@@ -243,8 +243,13 @@ def complete_checkin(checkin_id: int, summary: str = "") -> dict[str, Any]:
     sent = core.notify(p["id"], primary, f"Hearth daily summary: {p['name']}", text)
     escalation = core.create_alert(p["id"], level, "check-in flagged concern", text) if level in ("concern", "urgent") else None
     first = sent[0]["contact"] if sent else "your family"
-    closing = (f"Thanks for chatting with me. I've let {first} know you're doing okay." if level in ("ok", "watch")
-               else "Thank you for telling me. I'm letting your family know right now so someone can check on you.")
+    first_name = first.split(" ")[0]
+    if level in ("ok", "watch"):
+        closing = f"Thanks for chatting with me. I've let {first_name} know you're doing okay."
+    elif level == "concern":
+        closing = f"Thank you for telling me all that. I've let {first_name} know, so don't be surprised if you get a call today."
+    else:
+        closing = "Thank you for telling me. I'm letting your family know right now so someone can check on you."
     return {"ok": True, "risk": risk, "risk_level": level, "summary": text, "summary_sent_to": [s["contact"] for s in sent],
             "escalation": escalation, "missed_alerts_resolved": resolved, "closing_line": closing}
 

@@ -4,7 +4,7 @@ Two modes:
   llm       - any OpenAI-compatible chat endpoint with tool calling (HEARTH_LLM_BASE_URL, HEARTH_LLM_API_KEY, HEARTH_LLM_MODEL).
 Every tool call is logged so the dashboard can show exactly what the host did."""
 from __future__ import annotations
-import datetime as dt, inspect, json, os, re, uuid, urllib.request
+import datetime as dt, json, os, re, uuid, urllib.error, urllib.request
 from typing import Any
 from . import db, core
 from . import mcp_server as M
@@ -125,9 +125,9 @@ def extract_others(text: str, answered: set) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------- session
-def start(person_id: int, mode: str = "scripted") -> dict:
+def start(person_id: int, mode: str = "scripted", model: str = "") -> dict:
     sid = uuid.uuid4().hex[:10]
-    s = SESSIONS[sid] = {"id": sid, "person_id": person_id, "mode": mode, "checkin_id": None, "queue": [], "pos": 0, "answered": set(),
+    s = SESSIONS[sid] = {"id": sid, "person_id": person_id, "mode": mode, "model": model or "", "checkin_id": None, "queue": [], "pos": 0, "answered": set(),
                          "pending": None, "last_question": "", "clarified": set(), "history": [], "tool_log": [], "done": False, "play_audio": [], "messages": []}
     ctx = _call(s, "get_checkin_context", person_id=person_id)
     if "error" in ctx:
@@ -339,45 +339,252 @@ def _follow_up_question(flags: list[str]) -> str:
 # ---------------------------------------------------------------- optional LLM host
 
 def _tool_schemas() -> list[dict]:
+    """The same tool descriptions and JSON schemas a real host gets from tools/list, in OpenAI function-calling shape."""
     out = []
-    for name, f in M.TOOLS.items():
-        props, req = {}, []
-        for pname, p in inspect.signature(f).parameters.items():
-            t = {int: "integer", bool: "boolean", str: "string"}.get(p.annotation, "string")
-            props[pname] = {"type": t}
-            if p.default is inspect._empty: req.append(pname)
-        out.append({"type": "function", "function": {"name": name, "description": (f.__doc__ or name)[:400], "parameters": {"type": "object", "properties": props, "required": req}}})
+    for t in M.server._tool_manager.list_tools():
+        if t.name not in M.TOOLS: continue
+        params = dict(t.parameters or {"type": "object", "properties": {}})
+        params.pop("title", None)
+        out.append({"type": "function", "function": {"name": t.name, "description": (t.description or t.name)[:1000], "parameters": params}})
+    return out
+
+
+def _skill_text() -> str:
+    path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "skill", "SKILL.md")
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError:
+        return ""
+    if text.startswith("---"):                       # drop the frontmatter block
+        end = text.find("\n---", 3)
+        text = text[end + 4:] if end > 0 else text
+    return text.strip()
+
+
+def _checkin_state(s: dict) -> str:
+    """Deterministic scaffold for the model: what has been recorded, what is left. The host tracks state so the model needn't."""
+    ctx = s.get("ctx") or {}
+    cid = None; recorded = {}; started = False; finished = False
+    for t in s["tool_log"]:
+        if t["tool"] == "start_checkin" and isinstance(t["result"], dict) and t["result"].get("checkin_id"):
+            cid = t["result"]["checkin_id"]; started = True
+            for f in t["result"].get("answered") or []: recorded.setdefault(f, "(earlier)")
+        if t["tool"] == "record_answer" and isinstance(t["result"], dict) and t["result"].get("ok"):
+            recorded[t["args"].get("field", "?")] = t["args"].get("value", "")
+        if t["tool"] == "complete_checkin": finished = True
+    topics = ["mood", "sleep", "meds_taken", "ate", "concern"] + [f"event:{e['id']}" for e in ctx.get("events_today", [])] + \
+             [f"question:{q['id']}" for q in ctx.get("questions_from_family", [])] + ["plans"]
+    remaining = [t for t in topics if t not in recorded]
+    if finished: return "Check-in state: COMPLETED. Just respond warmly to anything else; do not record more answers."
+    if not started: return "Check-in state: not started. Call start_checkin first (person_id above)."
+    played = [t["args"].get("message_id") for t in s["tool_log"] if t["tool"] == "mark_message_played"]
+    unplayed = [m["id"] for m in ctx.get("family_messages", []) if m["id"] not in played]
+    lines = [f"Check-in state: checkin_id={cid}. Do NOT call start_checkin again.",
+             "Recorded so far: " + (", ".join(f"{k}={str(v)[:30]}" for k, v in recorded.items()) or "nothing"),
+             "Still to cover, in order: " + (", ".join(remaining) or "nothing; call complete_checkin now and speak its closing_line")]
+    if unplayed: lines.append(f"Family messages not yet played: {unplayed} (get_family_message then mark_message_played).")
+    return " ".join(lines)
+
+
+def _system_prompt(s: dict) -> str:
+    return (_skill_text() + "\n\n## This session\n\n" + M.daily_checkin(s["person_id"]) +
+            f" The person_id is {s['person_id']}. You are speaking aloud through a device: plain spoken sentences, no markdown, no lists, "
+            "no numbers or scales read out to the person, no stage directions or parentheticals, under 40 words per reply, one question at a time. "
+            "Interpret answers yourself and record them with record_answer before you reply: value is a 1-5 number for mood and sleep, yes or no for meds_taken and ate, and a short phrase for concern, plans, note, event and question fields; quote is always their exact words. Say medication names without the dosages. "
+            "When a family message has audio, the device plays it when you call get_family_message; just say who it is from and continue. "
+            "Finish with complete_checkin and speak its closing_line.\n\n" + _checkin_state(s) +
+            ("\n\nContext from get_checkin_context: " + json.dumps(s["ctx"])[:6000] if s.get("ctx") else ""))
+
+
+def _call_chat_completions(base: str, key: str, model: str, system: str, history: list[dict]) -> dict:
+    """OpenAI-style chat completions (Bedrock Mantle, Groq, OpenAI, vLLM...). Returns an OpenAI-style assistant message."""
+    body = {"model": model, "messages": [{"role": "system", "content": system}] + history, "tools": _tool_schemas(), "temperature": 0.4, "max_tokens": 1200}
+    if model.startswith("openai.gpt-oss"): body["reasoning_effort"] = "low"
+    req = urllib.request.Request(f"{base}/chat/completions", data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    resp = json.loads(urllib.request.urlopen(req, timeout=90).read())
+    msg = resp["choices"][0]["message"]
+    msg["content"] = re.sub(r"<reasoning>.*?</reasoning>\s*", "", msg.get("content") or "", flags=re.S).strip()
+    return {"role": "assistant", "content": msg["content"], "tool_calls": msg.get("tool_calls") or []}
+
+
+def _to_converse(history: list[dict]) -> list[dict]:
+    """OpenAI-style history -> Bedrock Converse messages (tool results merge into one user message)."""
+    out = []
+    for m in history:
+        if m["role"] == "user":
+            out.append({"role": "user", "content": [{"text": m["content"] or "..."}]})
+        elif m["role"] == "assistant":
+            blocks = [{"text": m["content"]}] if m.get("content") else []
+            for c in m.get("tool_calls") or []:
+                try: inp = json.loads(c["function"].get("arguments") or "{}")
+                except json.JSONDecodeError: inp = {}
+                blocks.append({"toolUse": {"toolUseId": c["id"], "name": c["function"]["name"], "input": inp}})
+            out.append({"role": "assistant", "content": blocks or [{"text": "..."}]})
+        elif m["role"] == "tool":
+            try: payload = json.loads(m["content"])
+            except json.JSONDecodeError: payload = {"text": m["content"]}
+            if not isinstance(payload, dict): payload = {"content": payload}
+            block = {"toolResult": {"toolUseId": m["tool_call_id"], "content": [{"json": payload}]}}
+            if out and out[-1]["role"] == "user" and any("toolResult" in b for b in out[-1]["content"]):
+                out[-1]["content"].append(block)
+            else:
+                out.append({"role": "user", "content": [block]})
+    return out
+
+
+def _call_converse(base: str, key: str, model: str, system: str, history: list[dict]) -> dict:
+    """Bedrock Converse API (Claude, Nova, ...) with a Bedrock API key. Returns an OpenAI-style assistant message."""
+    tools = [{"toolSpec": {"name": t["function"]["name"], "description": t["function"]["description"], "inputSchema": {"json": t["function"]["parameters"]}}} for t in _tool_schemas()]
+    body = {"system": [{"text": system}], "messages": _to_converse(history), "toolConfig": {"tools": tools}, "inferenceConfig": {"maxTokens": 700, "temperature": 0.4}}
+    req = urllib.request.Request(f"{base}/model/{model}/converse", data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    resp = json.loads(urllib.request.urlopen(req, timeout=90).read())
+    content, calls = [], []
+    for b in resp["output"]["message"]["content"]:
+        if "text" in b: content.append(b["text"])
+        if "toolUse" in b:
+            tu = b["toolUse"]; calls.append({"id": tu["toolUseId"], "type": "function", "function": {"name": tu["name"], "arguments": json.dumps(tu.get("input") or {})}})
+    text = re.sub(r"<thinking>.*?</thinking>\s*", "", "\n".join(content), flags=re.S).strip()
+    return {"role": "assistant", "content": text, "tool_calls": calls}
+
+
+def _checkin_state(s: dict) -> str:
+    """Deterministic scaffold for the model: what has been recorded, what is left. The host tracks state so the model needn't."""
+    ctx = s.get("ctx") or {}
+    cid = None; recorded = {}; started = False; finished = False
+    for t in s["tool_log"]:
+        if t["tool"] == "start_checkin" and isinstance(t["result"], dict) and t["result"].get("checkin_id"):
+            cid = t["result"]["checkin_id"]; started = True
+            for f in t["result"].get("answered") or []: recorded.setdefault(f, "(earlier)")
+        if t["tool"] == "record_answer" and isinstance(t["result"], dict) and t["result"].get("ok"):
+            recorded[t["args"].get("field", "?")] = t["args"].get("value", "")
+        if t["tool"] == "complete_checkin": finished = True
+    topics = ["mood", "sleep", "meds_taken", "ate", "concern"] + [f"event:{e['id']}" for e in ctx.get("events_today", [])] + \
+             [f"question:{q['id']}" for q in ctx.get("questions_from_family", [])] + ["plans"]
+    remaining = [t for t in topics if t not in recorded]
+    if finished: return "Check-in state: COMPLETED. Just respond warmly to anything else; do not record more answers."
+    if not started: return "Check-in state: not started. Call start_checkin first (person_id above)."
+    played = [t["args"].get("message_id") for t in s["tool_log"] if t["tool"] == "mark_message_played"]
+    unplayed = [m["id"] for m in ctx.get("family_messages", []) if m["id"] not in played]
+    lines = [f"Check-in state: checkin_id={cid}. Do NOT call start_checkin again.",
+             "Recorded so far: " + (", ".join(f"{k}={str(v)[:30]}" for k, v in recorded.items()) or "nothing"),
+             "Still to cover, in order: " + (", ".join(remaining) or "nothing; call complete_checkin now and speak its closing_line")]
+    if unplayed: lines.append(f"Family messages not yet played: {unplayed} (get_family_message then mark_message_played).")
+    return " ".join(lines)
+
+
+def _system_prompt(s: dict) -> str:
+    return (_skill_text() + "\n\n## This session\n\n" + M.daily_checkin(s["person_id"]) +
+            f" The person_id is {s['person_id']}. You are speaking aloud through a device: plain spoken sentences, no markdown, no lists, "
+            "no numbers or scales read out to the person, no stage directions or parentheticals, under 40 words per reply, one question at a time. "
+            "Interpret answers yourself (a 1-5 number or yes/no in value; their exact words in quote) and record them with record_answer before you reply. "
+            "When a family message has audio, the device plays it when you call get_family_message; just say who it is from and continue. "
+            "Finish with complete_checkin and speak its closing_line.\n\n" + _checkin_state(s) +
+            ("\n\nContext from get_checkin_context: " + json.dumps(s["ctx"])[:6000] if s.get("ctx") else ""))
+
+
+def _call_chat_completions(base: str, key: str, model: str, system: str, history: list[dict]) -> dict:
+    """OpenAI-style chat completions (Bedrock Mantle, Groq, OpenAI, vLLM...). Returns an OpenAI-style assistant message."""
+    body = {"model": model, "messages": [{"role": "system", "content": system}] + history, "tools": _tool_schemas(), "temperature": 0.4, "max_tokens": 1200}
+    if model.startswith("openai.gpt-oss"): body["reasoning_effort"] = "low"
+    req = urllib.request.Request(f"{base}/chat/completions", data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    resp = json.loads(urllib.request.urlopen(req, timeout=90).read())
+    msg = resp["choices"][0]["message"]
+    msg["content"] = re.sub(r"<reasoning>.*?</reasoning>\s*", "", msg.get("content") or "", flags=re.S).strip()
+    return {"role": "assistant", "content": msg["content"], "tool_calls": msg.get("tool_calls") or []}
+
+
+def _to_converse(history: list[dict]) -> list[dict]:
+    """OpenAI-style history -> Bedrock Converse messages (tool results merge into one user message)."""
+    out = []
+    for m in history:
+        if m["role"] == "user":
+            out.append({"role": "user", "content": [{"text": m["content"] or "..."}]})
+        elif m["role"] == "assistant":
+            blocks = [{"text": m["content"]}] if m.get("content") else []
+            for c in m.get("tool_calls") or []:
+                try: inp = json.loads(c["function"].get("arguments") or "{}")
+                except json.JSONDecodeError: inp = {}
+                blocks.append({"toolUse": {"toolUseId": c["id"], "name": c["function"]["name"], "input": inp}})
+            out.append({"role": "assistant", "content": blocks or [{"text": "..."}]})
+        elif m["role"] == "tool":
+            try: payload = json.loads(m["content"])
+            except json.JSONDecodeError: payload = {"text": m["content"]}
+            if not isinstance(payload, dict): payload = {"content": payload}
+            block = {"toolResult": {"toolUseId": m["tool_call_id"], "content": [{"json": payload}]}}
+            if out and out[-1]["role"] == "user" and any("toolResult" in b for b in out[-1]["content"]):
+                out[-1]["content"].append(block)
+            else:
+                out.append({"role": "user", "content": [block]})
+    return out
+
+
+def _call_converse(base: str, key: str, model: str, system: str, history: list[dict]) -> dict:
+    """Bedrock Converse API (Claude, Nova, ...) with a Bedrock API key. Returns an OpenAI-style assistant message."""
+    tools = [{"toolSpec": {"name": t["function"]["name"], "description": t["function"]["description"], "inputSchema": {"json": t["function"]["parameters"]}}} for t in _tool_schemas()]
+    body = {"system": [{"text": system}], "messages": _to_converse(history), "toolConfig": {"tools": tools}, "inferenceConfig": {"maxTokens": 700, "temperature": 0.4}}
+    req = urllib.request.Request(f"{base}/model/{model}/converse", data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    resp = json.loads(urllib.request.urlopen(req, timeout=90).read())
+    content, calls = [], []
+    for b in resp["output"]["message"]["content"]:
+        if "text" in b: content.append(b["text"])
+        if "toolUse" in b:
+            tu = b["toolUse"]; calls.append({"id": tu["toolUseId"], "type": "function", "function": {"name": tu["name"], "arguments": json.dumps(tu.get("input") or {})}})
+    text = re.sub(r"<thinking>.*?</thinking>\s*", "", "\n".join(content), flags=re.S).strip()
+    return {"role": "assistant", "content": text, "tool_calls": calls}
+
+
+def llm_models() -> list[dict]:
+    """Hosts the simulator can offer: the configured model plus, on Bedrock, the two model families Alexa+ itself runs on."""
+    base = os.environ.get("HEARTH_LLM_BASE_URL", ""); default = os.environ.get("HEARTH_LLM_MODEL", "")
+    if not base or not os.environ.get("HEARTH_LLM_API_KEY"): return []
+    out = []
+    if "bedrock-runtime" in base:
+        out = [{"id": "us.anthropic.claude-sonnet-4-6", "label": "Claude Sonnet 4.6 on Amazon Bedrock"}, {"id": "us.amazon.nova-2-lite-v1:0", "label": "Amazon Nova 2 Lite on Amazon Bedrock"}]
+    if default and default not in [m["id"] for m in out]:
+        out.insert(0, {"id": default, "label": f"{default} (configured)"})
+    out.sort(key=lambda m: m["id"] != default)          # the configured model first
     return out
 
 
 def _llm_turn(s: dict, user_text: str | None) -> str:
-    base = os.environ.get("HEARTH_LLM_BASE_URL", "").rstrip("/"); key = os.environ.get("HEARTH_LLM_API_KEY", ""); model = os.environ.get("HEARTH_LLM_MODEL", "")
+    base = os.environ.get("HEARTH_LLM_BASE_URL", "").rstrip("/"); key = os.environ.get("HEARTH_LLM_API_KEY", ""); model = s.get("model") or os.environ.get("HEARTH_LLM_MODEL", "")
+    protocol = os.environ.get("HEARTH_LLM_PROTOCOL", "converse" if "bedrock-runtime" in base else "chat")
     if not base or not model:
         s["done"] = True
         return "LLM mode needs HEARTH_LLM_BASE_URL, HEARTH_LLM_API_KEY and HEARTH_LLM_MODEL. Use scripted mode instead."
-    system = M.daily_checkin(s["person_id"]) + " Speak as the assistant; keep each reply under 40 words."
-    msgs = [{"role": "system", "content": system}] + s["history"]
-    if user_text is None: msgs.append({"role": "user", "content": "(The person is listening. Greet them and begin.)"})
+    if user_text is None:
+        s["history"].append({"role": "user", "content": "(The person is listening. Greet them and begin.)"})
     for _ in range(8):
-        body = json.dumps({"model": model, "messages": msgs, "tools": _tool_schemas(), "temperature": 0.4}).encode()
-        req = urllib.request.Request(f"{base}/chat/completions", data=body, headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
         try:
-            resp = json.loads(urllib.request.urlopen(req, timeout=60).read())
+            msg = (_call_converse if protocol == "converse" else _call_chat_completions)(base, key, model, _system_prompt(s), s["history"])
+        except urllib.error.HTTPError as ex:
+            return f"(LLM error: HTTP {ex.code}: {ex.read().decode(errors='replace')[:300]})"
         except Exception as ex:
             return f"(LLM error: {ex})"
-        msg = resp["choices"][0]["message"]
         calls = msg.get("tool_calls") or []
+        content = re.sub(r"\((?:wait|user|pause|listen)[^)]*\)", "", msg.get("content") or "", flags=re.I).strip()
         if not calls:
-            content = msg.get("content") or "..."
             if any(t["tool"] in ("complete_checkin", "request_help", "snooze_checkin") for t in s["tool_log"]):
                 s["done"] = True
-            return content
-        msgs.append(msg)
+            return content or "I'm here whenever you're ready."
+        s["history"].append({"role": "assistant", "content": content, "tool_calls": calls})
         for c in calls:
-            name = c["function"]["name"]; args = json.loads(c["function"].get("arguments") or "{}")
-            result = _serialize(_call(s, name, **args)) if name in M.TOOLS else {"error": "unknown tool"}
+            name = c["function"]["name"]
+            try:
+                args = json.loads(c["function"].get("arguments") or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            if name in M.TOOLS:
+                try:
+                    result = _serialize(_call(s, name, **args))
+                except TypeError as ex:
+                    result = {"error": f"bad arguments: {ex}"}
+            else:
+                result = {"error": "unknown tool"}
             if name == "get_family_message":
                 mid = args.get("message_id"); m = db.message(int(mid)) if mid else None
-                if m and m.get("audio_path"): s["play_audio"].append(f"/api/media/{mid}")
-            msgs.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(result)})
+                if m:
+                    if m.get("audio_path"): s["play_audio"].append(f"/api/media/{mid}")
+                    s["messages"].append({"from": m["from_name"], "transcript": m.get("transcript") or "", "has_audio": bool(m.get("audio_path"))})
+            s["history"].append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(result)})
     return "(too many tool calls)"
