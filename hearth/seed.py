@@ -43,8 +43,13 @@ def run() -> None:
                        (pid, (started + dt.timedelta(minutes=5)).isoformat(), "watch", "check-in flagged concern", "Margaret said she forgot her pills; she took them during the call.",
                         "acknowledged", "Anna Hale", (started + dt.timedelta(minutes=40)).isoformat()))
     # today's extras
-    db.execute("INSERT INTO messages(person_id, direction, from_name, contact_id, kind, transcript, created_at) VALUES (?,?,?,?,?,?,?)",
-               (pid, "to_person", "Anna", ids["Anna Hale"], "text", "Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you.", db.now_iso()))
+    anna_text = "Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you."
+    anna_audio = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "demo", "anna_message.mp3")
+    mid = db.execute("INSERT INTO messages(person_id, direction, from_name, contact_id, kind, transcript, mime, created_at) VALUES (?,?,?,?,?,?,?,?)",
+                     (pid, "to_person", "Anna", ids["Anna Hale"], "voice" if os.path.exists(anna_audio) else "text", anna_text, "audio/mpeg", db.now_iso()))
+    if os.path.exists(anna_audio):                                                  # a recorded (or Polly-narrated) message plays in her voice
+        path = db.save_media(mid, open(anna_audio, "rb").read(), "audio/mpeg")
+        db.execute("UPDATE messages SET audio_path=? WHERE id=?", (path, mid))
     db.execute("INSERT INTO questions(person_id, from_name, text, created_at) VALUES (?,?,?,?)", (pid, "Anna", "Did the plumber come about the kitchen tap?", db.now_iso()))
     db.execute("INSERT INTO events(person_id, date, time, title, kind, notes, added_by, remind_day_before, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
                (pid, today.isoformat(), "14:00", "Dr. Patel, cardiology", "appointment", "Tom is driving you, he'll be there at 1:30.", "Anna", 1, db.now_iso()))

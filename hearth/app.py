@@ -7,7 +7,7 @@ from starlette.requests import Request
 from starlette.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
-from . import db, core, escalation, agent, auth, ui
+from . import db, core, escalation, agent, auth, ui, tts
 from .mcp_server import server, TOOLS, AUTH_PROVIDER
 
 WEB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
@@ -150,9 +150,16 @@ async def api_sim_start(request: Request):
     return JSONResponse(agent.start(int(body.get("person_id", 1)), body.get("mode", "scripted"), str(body.get("model") or "")))
 
 
+async def api_tts(request: Request):
+    """Demo narration: an mp3 of the line in the given voice (Amazon Polly), cached; 404 when narration is off."""
+    text = (request.query_params.get("text") or "")[:600]; who = request.query_params.get("who") or "hearth"
+    path = await asyncio.get_running_loop().run_in_executor(None, tts.synthesize, text, who)
+    return FileResponse(path, media_type="audio/mpeg") if path else JSONResponse({"error": "narration not available"}, status_code=404)
+
+
 async def api_sim_models(request: Request):
     """LLM hosts available to the simulator (empty when no key is configured; the scripted host always works)."""
-    return JSONResponse({"models": agent.llm_models()})
+    return JSONResponse({"models": agent.llm_models(), "narration": "polly" if tts.enabled() else "browser"})
 
 
 async def api_sim_turn(request: Request):
@@ -222,7 +229,7 @@ app = Starlette(routes=[
     Route("/api/persons/{pid:int}/away", api_away_create, methods=["POST"]), Route("/api/away/{aid:int}", api_away_delete, methods=["DELETE"]),
     Route("/api/persons/{pid:int}/events", api_event_create, methods=["POST"]), Route("/api/events/{eid:int}", api_event_delete, methods=["DELETE"]),
     Route("/api/alerts/{aid:int}/ack", api_ack, methods=["POST"]),
-    Route("/api/sim/start", api_sim_start, methods=["POST"]), Route("/api/sim/turn", api_sim_turn, methods=["POST"]), Route("/api/sim/models", api_sim_models),
+    Route("/api/sim/start", api_sim_start, methods=["POST"]), Route("/api/sim/turn", api_sim_turn, methods=["POST"]), Route("/api/sim/models", api_sim_models), Route("/api/tts", api_tts),
     Route("/api/tool", api_tool, methods=["POST"]), Route("/api/watchdog/run", api_watchdog, methods=["POST"]),
     Route("/api/ui/manifest", api_ui_manifest), Route("/api/ui/resource", api_ui_resource),
     Route("/api/demo/missed", api_demo_missed, methods=["POST"]), Route("/api/demo/reset", api_demo_reset, methods=["POST"]),

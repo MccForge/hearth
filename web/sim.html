@@ -67,6 +67,10 @@
         <label class="note"><input type="checkbox" id="speak" checked> Speak Hearth's lines</label>
         <button id="micBtn" onclick="listen()" title="Answer by voice (Chrome)">🎤 Answer</button>
         <button id="noteBtn" onclick="toggleNote()" title="Record a voice note for the family">● Voice note for family</button>
+        <button id="demoBtn" onclick="runDemo()" title="Plays the whole check-in by itself, both voices spoken, ready to screen-record">▶ Run demo</button>
+        <label class="note" title="Voice for Hearth">Hearth <select id="voiceHearth"></select></label>
+        <label class="note" title="Voice for Margaret in the demo">Margaret <select id="voiceMargaret"></select></label>
+        <span class="note" id="narration"></span>
       </div>
       <div class="echo">
         <div class="screen" id="screen">
@@ -196,10 +200,25 @@ document.getElementById('chips').innerHTML = CHIPS.map(c => `<button onclick="sa
 let TZ = undefined; fetch('/api/persons/1').then(r => r.json()).then(p => { TZ = p.person && p.person.timezone; tick(); }).catch(() => {});
 function tick() { const now = new Date(); const t = now.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', timeZone: TZ}); document.getElementById('homeTime').textContent = t; document.getElementById('clock').textContent = t; document.getElementById('phoneTime').textContent = t; document.getElementById('homeDate').textContent = now.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ}); }
 tick(); setInterval(tick, 15000);
-fetch('/api/sim/models').then(r => r.json()).then(j => { const sel = document.getElementById('mode'); (j.models || []).forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; sel.appendChild(o); }); if (j.models && j.models.length) sel.value = j.models[0].id; }).catch(() => {});
+fetch('/api/sim/models').then(r => r.json()).then(j => { NARRATION = j.narration || 'browser'; document.getElementById('narration').textContent = NARRATION === 'polly' ? 'voices: Amazon Polly' : 'voices: browser'; const sel = document.getElementById('mode'); (j.models || []).forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; sel.appendChild(o); }); if (j.models && j.models.length) sel.value = j.models[0].id; }).catch(() => {});
 function bubble(who, text, cls) { const d = document.createElement('div'); d.className = 'b ' + (cls || (who === 'Hearth' ? 'a' : 'u')); d.innerHTML = `<div class="who">${esc(who)}</div>${esc(text)}`; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; return d; }
 function caption(text, you) { const c = document.getElementById('caption'); if (!text) { c.classList.remove('on'); } else { c.innerHTML = (you ? `<div class="you">“${esc(you)}”</div>` : '') + esc(text); c.classList.add('on'); } echo.notifyResize(); }
-function speak(text) { return new Promise(res => { if (!document.getElementById('speak').checked || !window.speechSynthesis) return res(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; u.pitch = 1.05; u.onend = res; u.onerror = res; speechSynthesis.cancel(); speechSynthesis.speak(u); }); }
+function voiceById(id) { return (speechSynthesis.getVoices() || []).find(v => v.voiceURI === id || v.name === id) || null; }
+let NARRATION = 'browser';
+async function speakPolly(text, who) { try { const r = await fetch('/api/tts?who=' + encodeURIComponent(who || 'hearth') + '&text=' + encodeURIComponent(text)); if (!r.ok) return false; const blob = await r.blob(); const url = URL.createObjectURL(blob);
+  await new Promise(res => { const a = new Audio(url); a.onended = res; a.onerror = res; a.play().catch(res); }); URL.revokeObjectURL(url); return true; } catch (e) { return false; } }
+function speak(text, who) { return new Promise(async res => { if (!document.getElementById('speak').checked || !text) return res(); if (NARRATION === 'polly' && await speakPolly(text, who)) return res(); if (!window.speechSynthesis) return res();
+  const u = new SpeechSynthesisUtterance(text); const sel = document.getElementById(who === 'margaret' ? 'voiceMargaret' : 'voiceHearth'); const v = sel && voiceById(sel.value); if (v) u.voice = v;
+  u.rate = who === 'margaret' ? 0.9 : 0.97; u.pitch = who === 'margaret' ? 0.95 : 1.05; let done = false; const fin = () => { if (!done) { done = true; res(); } };
+  u.onend = fin; u.onerror = fin; setTimeout(fin, 1200 + text.length * 65); speechSynthesis.cancel(); speechSynthesis.speak(u); }); }
+function fillVoices() { const vs = (speechSynthesis.getVoices() || []).filter(v => v.lang && v.lang.toLowerCase().startsWith('en')); if (!vs.length) return;
+  const score = (v, pref) => pref.reduce((a, p, i) => a + (v.name.toLowerCase().includes(p) ? (pref.length - i) * 10 : 0), 0) + (v.localService ? 0 : 1) - (/david|mark|george|guy|ryan|male/i.test(v.name) ? 50 : 0);
+  const pick = pref => vs.slice().sort((a, b) => score(b, pref) - score(a, pref))[0];
+  const h = pick(['aria', 'jenny', 'ava', 'emma', 'samantha', 'google us english', 'zira', 'female']); const m = pick(['libby', 'sonia', 'hazel', 'susan', 'google uk english female', 'karen', 'moira', 'zira']);
+  for (const [id, chosen] of [['voiceHearth', h], ['voiceMargaret', m]]) { const sel = document.getElementById(id); if (sel.options.length) continue;
+    vs.forEach(v => { const o = document.createElement('option'); o.value = v.voiceURI; o.textContent = v.name.replace(/Microsoft |Google |Online \(Natural\)| - English.*$/g, '').trim(); sel.appendChild(o); }); if (chosen) sel.value = chosen.voiceURI; }
+  const hs = document.getElementById('voiceHearth'), ms = document.getElementById('voiceMargaret'); if (hs.value === ms.value && vs.length > 1) ms.value = vs.find(v => v.voiceURI !== hs.value).voiceURI; }
+if (window.speechSynthesis) { fillVoices(); speechSynthesis.onvoiceschanged = fillVoices; }
 function playAudio(url) { return new Promise(res => { const a = new Audio(url); a.onended = res; a.onerror = res; a.play().catch(res); }); }
 function setState(s, cls) { document.getElementById('devState').textContent = s; document.getElementById('lightbar').className = 'lightbar' + (cls ? ' ' + cls : ''); }
 function logCall(c, uri) { if (tools.querySelector('.note')) tools.innerHTML = '';
@@ -208,19 +227,56 @@ function enable(on) { document.getElementById('txt').disabled = !on; document.ge
 async function start() {
   chat.innerHTML = ''; tools.innerHTML = '<div class="note">No calls yet.</div>'; done = false; caption(''); setState('listening', 'listen');
   Object.values(echo.views).forEach(v => { BY_WINDOW.delete(v.frame.contentWindow); v.frame.remove(); }); echo.views = {}; echo.show(null);
-  const sel = document.getElementById('mode').value; const r = await post('/api/sim/start', {person_id: 1, mode: sel === 'scripted' ? 'scripted' : 'llm', model: sel === 'scripted' ? '' : sel}); session = r.session_id;
+  const sel = document.getElementById('mode').value; const r = await post('/api/sim/start', {person_id: 1, mode: sel === 'scripted' ? 'scripted' : 'llm', model: sel === 'scripted' ? '' : sel}); session = r.session_id; lastAgentLine = r.agent || '';
   await routeCalls(r.tool_calls);
   for (const m of (r.messages || [])) bubble(`Message from ${m.from}${m.has_audio ? ' 🔊' : ''}`, m.transcript ? `“${m.transcript}”` : '(voice message)', 'm');
   bubble('Hearth', r.agent);
   if ((r.play_audio || []).length) { setState('playing message from family', 'play'); caption('Playing a message from your family…'); for (const u of r.play_audio) await playAudio(u); }
-  setState('speaking', 'speak'); caption(r.agent); await speak(r.agent);
+  setState('speaking', 'speak'); caption(r.agent); await speak(r.agent, 'hearth');
   if (r.done) { done = true; enable(false); setState('idle', ''); } else { setState('listening', 'listen'); enable(true); }
 }
+// ------------------------------------------------------------------ auto-play demo: the whole check-in, both voices, no hands
+const MARGARET = [                                                          // [what Hearth is asking, what Margaret says]
+  [/hurt|pain|dizz|move around|get up|injur/i, "No, I'm not hurt. I got right up, just felt silly."],
+  [/more about that|tell me more|what happened|making today hard/i, "Oh, it's just my knee. It's better once I'm up and moving."],
+  [/check the pill|pill box|take (it|them) now/i, "Yes, I've taken them now."],
+  [/plumber|tap|kitchen/i, "He came on Tuesday, love. All fixed."],
+  [/patel|cardio|appointment|2 pm|two o'clock|tom.*(driv|pick)|all set/i, "Yes, Tom's picking me up at half past one."],
+  [/sleep|night|rest/i, "Not great. My knee kept me up half the night."],
+  [/medic|pill|lisinopril|metformin|tablet/i, "Yes, I took them with my toast."],
+  [/eat|breakfast|food|hungry|meal/i, "Toast and a boiled egg."],
+  [/bother|worr|on your mind|concern|anything else|trouble/i, "Nothing really. Though I did have a little fall getting to the bathroom yesterday."],
+  [/plan|rest of the day|today.*doing|up to/i, "The garden, then a nap, I think."],
+  [/feel|how are you|doing today/i, "Oh, pretty good, thank you."],
+];
+let demoRunning = false;
+function margaretLine(question) { const used = window.demoUsed || (window.demoUsed = new Set()); for (const [re, line] of MARGARET) { if (re.test(question) && !used.has(line)) { used.add(line); return line; } }
+  const spare = ["Yes, that's right.", "I think so, dear.", "That's fine."]; return spare[used.size % spare.length]; }
+const pause = ms => new Promise(r => setTimeout(r, ms));
+async function runDemo() {
+  if (demoRunning) return; demoRunning = true; window.demoUsed = new Set(); const btn = document.getElementById('demoBtn'); btn.disabled = true; btn.textContent = '▶ Demo running…';
+  document.getElementById('speak').checked = true;
+  try {
+    await post('/api/demo/reset', {}); await pause(600);
+    await start();                                                             // greeting + Anna's message, spoken
+    let guard = 0;
+    while (!done && guard++ < 14) {
+      await pause(1100);
+      const line = margaretLine(lastAgentLine);
+      setState('Margaret speaking', 'listen'); const cap = document.getElementById('caption'); cap.innerHTML = `<div class="you">“${esc(line)}”</div>`; cap.classList.add('on'); echo.notifyResize();
+      await speak(line, 'margaret'); await pause(250);
+      await say(line);
+    }
+    await pause(1800);
+    await askStatus();                                                         // Anna asks her own device how Mom is
+  } finally { demoRunning = false; btn.disabled = false; btn.textContent = '▶ Run demo'; }
+}
+let lastAgentLine = '';
 async function say(text) {
   if (!session || done) return; bubble('Margaret', text); caption('…', text); setState('thinking', 'think');
-  const r = await post('/api/sim/turn', {session_id: session, text}); bubble('Hearth', r.agent); await routeCalls(r.tool_calls);
+  const r = await post('/api/sim/turn', {session_id: session, text}); lastAgentLine = r.agent || ''; bubble('Hearth', r.agent); await routeCalls(r.tool_calls);
   const alerted = (r.tool_calls || []).some(c => c.tool === 'request_help');
-  setState(alerted ? 'alerting family' : 'speaking', alerted ? 'alert' : 'speak'); caption(r.agent, text); await speak(r.agent);
+  setState(alerted ? 'alerting family' : 'speaking', alerted ? 'alert' : 'speak'); caption(r.agent, text); await speak(r.agent, 'hearth');
   if (r.done) { done = true; enable(false); setState(alerted ? 'family alerted' : 'idle', alerted ? 'alert' : ''); } else setState('listening', 'listen');
 }
 async function resetDemo() { await post('/api/demo/reset', {}); location.reload(); }
