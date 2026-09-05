@@ -4,7 +4,7 @@ Two modes:
   llm       - any OpenAI-compatible chat endpoint with tool calling (HEARTH_LLM_BASE_URL, HEARTH_LLM_API_KEY, HEARTH_LLM_MODEL).
 Every tool call is logged so the dashboard can show exactly what the host did."""
 from __future__ import annotations
-import datetime as dt, json, os, re, uuid, urllib.error, urllib.request
+import datetime as dt, json, os, re, time, uuid, urllib.error, urllib.request
 from typing import Any
 from . import db, core
 from . import mcp_server as M
@@ -554,16 +554,30 @@ def _llm_turn(s: dict, user_text: str | None) -> str:
         return "LLM mode needs HEARTH_LLM_BASE_URL, HEARTH_LLM_API_KEY and HEARTH_LLM_MODEL. Use scripted mode instead."
     if user_text is None:
         s["history"].append({"role": "user", "content": "(The person is listening. Greet them and begin.)"})
+    call = _call_converse if protocol == "converse" else _call_chat_completions
     for _ in range(8):
-        try:
-            msg = (_call_converse if protocol == "converse" else _call_chat_completions)(base, key, model, _system_prompt(s), s["history"])
-        except urllib.error.HTTPError as ex:
-            return f"(LLM error: HTTP {ex.code}: {ex.read().decode(errors='replace')[:300]})"
-        except Exception as ex:
-            return f"(LLM error: {ex})"
+        msg = None
+        for attempt, pause in enumerate((0, 3, 6, 10, 15)):
+            if pause: time.sleep(pause)
+            try:
+                msg = call(base, key, model, _system_prompt(s), s["history"]); break
+            except urllib.error.HTTPError as ex:
+                detail = ex.read().decode(errors="replace")[:300]
+                transient = ex.code in (429, 500, 502, 503, 504) or (ex.code == 404 and "use case" in detail)   # throttling, or access still propagating
+                if not transient or attempt == 4:
+                    return f"(LLM error: HTTP {ex.code}: {detail})"
+            except Exception as ex:
+                return f"(LLM error: {ex})"
         calls = msg.get("tool_calls") or []
         content = re.sub(r"\((?:wait|user|pause|listen)[^)]*\)", "", msg.get("content") or "", flags=re.I).strip()
         if not calls:
+            if not content and not s.get("_nudged"):              # recorded but said nothing: ask for the spoken line once
+                s["_nudged"] = True
+                s["history"].append({"role": "user", "content": "(Say your next line to the person now.)"})
+                continue
+            if s.get("_nudged"):
+                s["_nudged"] = False
+                s["history"] = [m for m in s["history"] if m.get("content") != "(Say your next line to the person now.)"]
             if any(t["tool"] in ("complete_checkin", "request_help", "snooze_checkin") for t in s["tool_log"]):
                 s["done"] = True
             return content or "I'm here whenever you're ready."
