@@ -17,6 +17,10 @@
   button { font:inherit; padding:8px 12px; border-radius:9px; border:1px solid var(--line); background:#fff; cursor:pointer } button.primary { background:var(--accent); color:#fff; border-color:var(--accent) }
   button:disabled { opacity:.5; cursor:default } button.rec { background:#c8322b; color:#fff; border-color:#c8322b }
   select { font:inherit; padding:6px 8px; border-radius:8px; border:1px solid var(--line) }
+  /* demo chapter banner */
+  .chapter { display:none; align-items:center; gap:12px; margin:12px 0 -2px; padding:10px 14px; border-radius:12px; background:#2b2622; color:#fff; font-size:15px; line-height:1.35; animation:fadein .4s ease }
+  .chapter.on { display:flex } .chapter .k { flex:none; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#f2c14e; font-weight:700 } .chapter .t { flex:1 }
+  @keyframes fadein { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:none } }
   /* the device */
   .echo { background:linear-gradient(180deg,#2a2e36,#171a20); border-radius:26px; padding:16px 16px 12px; box-shadow:0 24px 60px rgba(20,16,12,.35), inset 0 1px 0 rgba(255,255,255,.08); margin-top:12px }
   .screen { position:relative; aspect-ratio:16/10; background:#0b1220; border-radius:14px; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(255,255,255,.06) }
@@ -72,6 +76,7 @@
         <label class="note" title="Voice for Margaret in the demo">Margaret <select id="voiceMargaret"></select></label>
         <span class="note" id="narration"></span>
       </div>
+      <div class="chapter" id="chapter"><span class="k"></span><span class="t"></span></div>
       <div class="echo">
         <div class="screen" id="screen">
           <div class="home" id="home"><div class="time" id="homeTime">9:41</div><div class="hint" id="homeDate"></div><div class="wake">“Alexa, start my morning check-in”</div></div>
@@ -227,7 +232,7 @@ function enable(on) { document.getElementById('txt').disabled = !on; document.ge
 async function start() {
   chat.innerHTML = ''; tools.innerHTML = '<div class="note">No calls yet.</div>'; done = false; caption(''); setState('listening', 'listen');
   Object.values(echo.views).forEach(v => { BY_WINDOW.delete(v.frame.contentWindow); v.frame.remove(); }); echo.views = {}; echo.show(null);
-  const sel = document.getElementById('mode').value; const r = await post('/api/sim/start', {person_id: 1, mode: sel === 'scripted' ? 'scripted' : 'llm', model: sel === 'scripted' ? '' : sel}); session = r.session_id; lastAgentLine = r.agent || '';
+  const sel = document.getElementById('mode').value; const r = await post('/api/sim/start', {person_id: 1, mode: sel === 'scripted' ? 'scripted' : 'llm', model: sel === 'scripted' ? '' : sel}); session = r.session_id; lastAgentLine = r.agent || ''; if (demoRunning) setTimeout(() => beat(lastAgentLine), 2500);
   await routeCalls(r.tool_calls);
   for (const m of (r.messages || [])) bubble(`Message from ${m.from}${m.has_audio ? ' 🔊' : ''}`, m.transcript ? `“${m.transcript}”` : '(voice message)', 'm');
   bubble('Hearth', r.agent);
@@ -253,11 +258,22 @@ let demoRunning = false;
 function margaretLine(question) { const used = window.demoUsed || (window.demoUsed = new Set()); for (const [re, line] of MARGARET) { if (re.test(question) && !used.has(line)) { used.add(line); return line; } }
   const spare = ["Yes, that's right.", "I think so, dear.", "That's fine."]; return spare[used.size % spare.length]; }
 const pause = ms => new Promise(r => setTimeout(r, ms));
+function chapter(kicker, text) { const c = document.getElementById('chapter'); if (!text) { c.classList.remove('on'); return; } c.querySelector('.k').textContent = kicker; c.querySelector('.t').textContent = text; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); }
+const BEATS = [                                                             // [Hearth said…, chapter shown]
+  [/message|anna sent|anna left/i, ['Every morning', "Anna is abroad. She left a message; it plays first, then Hearth carries on."]],
+  [/fall|hurt|move around/i, ['Noticed', 'A fall mentioned in passing gets the follow-up a daughter would ask.']],
+  [/patel|appointment|2 pm/i, ['Today', "The cardiology appointment Anna added, with Tom driving, raised at the right moment."]],
+  [/plumber|anna wanted|anna asks/i, ['From the family', "Anna's question, asked for her; the answer goes back in the summary."]],
+  [/let (tom|anna|your family) know|i've let|call today|doing okay/i, ['Done', 'A plain-language summary is emailed to the family. A fall plus poor sleep means someone is asked to call.']],
+];
+function beat(text) { for (const [re, [k, t]] of BEATS) { if (re.test(text) && !(window.beatsUsed = window.beatsUsed || new Set()).has(t)) { window.beatsUsed.add(t); chapter(k, t); return; } } }
 async function runDemo() {
   if (demoRunning) return; demoRunning = true; window.demoUsed = new Set(); const btn = document.getElementById('demoBtn'); btn.disabled = true; btn.textContent = '▶ Demo running…';
   document.getElementById('speak').checked = true;
+  window.beatsUsed = new Set();
   try {
     await post('/api/demo/reset', {}); await pause(600);
+    chapter('Hearth', 'A daily voice check-in for someone living alone, with the family kept in the loop. Margaret, 79, lives alone in Columbus.');
     await start();                                                             // greeting + Anna's message, spoken
     let guard = 0;
     while (!done && guard++ < 14) {
@@ -268,13 +284,16 @@ async function runDemo() {
       await say(line);
     }
     await pause(1400);
+    chapter('Meanwhile', "On Anna's phone: the summary arrived. She asks her own Alexa+: \"How is Mom today?\"");
     await askStatus();                                                         // Anna asks her own device how Mom is
+    await pause(2500);
+    chapter('Hearth', 'An MCP server for Alexa+: fourteen tools, on-screen cards, family voice messages, an escalation ladder, and a dashboard. github.com/MccForge/hearth');
   } finally { demoRunning = false; btn.disabled = false; btn.textContent = '▶ Run demo'; }
 }
 let lastAgentLine = '';
 async function say(text) {
   if (!session || done) return; bubble('Margaret', text); caption('…', text); setState('thinking', 'think');
-  const r = await post('/api/sim/turn', {session_id: session, text}); lastAgentLine = r.agent || ''; bubble('Hearth', r.agent); await routeCalls(r.tool_calls);
+  const r = await post('/api/sim/turn', {session_id: session, text}); lastAgentLine = r.agent || ''; if (demoRunning) beat(lastAgentLine); bubble('Hearth', r.agent); await routeCalls(r.tool_calls);
   const alerted = (r.tool_calls || []).some(c => c.tool === 'request_help');
   setState(alerted ? 'alerting family' : 'speaking', alerted ? 'alert' : 'speak'); caption(r.agent, text); await speak(r.agent, 'hearth');
   if (r.done) { done = true; enable(false); setState(alerted ? 'family alerted' : 'idle', alerted ? 'alert' : ''); } else setState('listening', 'listen');
