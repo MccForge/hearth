@@ -17,7 +17,7 @@ from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, Re
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
-from starlette.routing import Mount, Route
+from starlette.routing import Route
 from . import db
 
 CODE_TTL, TOKEN_TTL, REFRESH_TTL = 600, 3600, 30 * 86400

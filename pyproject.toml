@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hearth"
+version = "0.1.0"
+description = "Daily voice check-in for someone living alone, with caregiver escalation. MCP server for Alexa+."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Hearth contributors" }]
+keywords = ["mcp", "alexa", "caregiver", "elderly", "check-in", "voice"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Communications :: Voice",
+    "Framework :: AsyncIO",
+]
+dependencies = [
+    "mcp>=2.1",
+    "starlette>=0.40",
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "build",
+]
+
+[project.scripts]
+hearth = "hearth.app:main"
+
+[tool.setuptools]
+packages = ["hearth"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+filterwarnings = [
+    "ignore::DeprecationWarning:anyio.*",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["hearth", "tests"]
+
+[tool.ruff.lint]
+# Focus on bug-catching rules (unused/undefined names, runtime/logic errors).
+# Style checks (E-line, import sorting, pyupgrade) are deliberately left out:
+# Hearth uses a compact single-line statement style throughout.
+select = ["F", "E9"]
