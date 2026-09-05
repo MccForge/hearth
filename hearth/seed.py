@@ -1,7 +1,7 @@
 """Demo data: Margaret, 79, lives alone; daughter Anna is the primary contact. Two weeks of history so the dashboard has a story,
 plus the things that make a check-in interesting today: a message from Anna, a question she wants asked, an appointment, and Anna away next week."""
 from __future__ import annotations
-import datetime as dt, json, random
+import os, datetime as dt, json, random
 from . import db, core
 
 
@@ -11,7 +11,9 @@ def run() -> None:
                      ("Margaret Hale", "Margaret", "America/New_York", "08:00", "11:00",
                       "Lives alone in Columbus. Knee replacement in March. Likes to talk about her garden and the Reds.", db.now_iso()))
     ids = {}
-    for name, rel, ch, addr, pr in [("Anna Hale", "daughter", "dashboard", "", 1), ("Tom Reilly", "neighbor", "dashboard", "", 2), ("David Hale", "son", "dashboard", "", 3)]:
+    family_email = os.environ.get("HEARTH_FAMILY_EMAIL", "")          # a real inbox for the demo family, when configured
+    for name, rel, ch, addr, pr in [("Anna Hale", "daughter", "email" if family_email else "dashboard", family_email, 1),
+                                    ("Tom Reilly", "neighbor", "email" if family_email else "dashboard", family_email, 2), ("David Hale", "son", "dashboard", "", 3)]:
         ids[name] = db.execute("INSERT INTO contacts(person_id, name, relation, channel, address, priority) VALUES (?,?,?,?,?,?)", (pid, name, rel, ch, addr, pr))
     for m in ("Lisinopril 10mg", "Metformin 500mg"):
         db.execute("INSERT INTO medications(person_id, name, schedule) VALUES (?,?,?)", (pid, m, "morning"))
