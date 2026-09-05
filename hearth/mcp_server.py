@@ -5,14 +5,18 @@ from __future__ import annotations
 import base64, datetime as dt, json, os, re
 from mcp.server.mcpserver import MCPServer
 from mcp.types import AudioContent, TextContent
-from . import db, core
+from . import db, core, auth
 
+AUTH_PROVIDER = auth.HearthAuthProvider(auth.public_url()) if auth.enabled() else None
 server = MCPServer(
     name="hearth",
     title="Hearth daily check-in",
-    version="0.2.0",
+    version="0.3.0",
+    auth_server_provider=AUTH_PROVIDER,
+    auth=auth.settings(auth.public_url()) if AUTH_PROVIDER else None,
     instructions=(
         "Hearth runs a short, warm daily check-in with a person who lives alone and keeps their family informed. "
+        "person_id 0 means the person this device is linked to (account linking); use 0 unless you were told a specific id. "
         "Flow: get_checkin_context -> (play any family_messages with get_family_message, then mark_message_played) -> start_checkin "
         "-> record_answer per topic (including questions_from_family as field 'question:<id>' and events_today as field 'event:<id>') "
         "-> complete_checkin. If the person asks for help or describes an emergency, call request_help immediately and advise calling "
@@ -59,6 +63,15 @@ def parse_scale(v) -> int | None:
 
 
 def _person_or_error(person_id: int):
+    """person_id 0 resolves to the person bound to the caller's OAuth token (account linking); without a token, the only/first person."""
+    if not person_id:
+        linked = auth.linked_person_id()
+        if linked:
+            person_id = linked
+        elif auth.enabled():
+            return (None, {"error": "This device isn't linked to a person yet. Complete account linking in Alexa+ (Hearth's link page) and try again."})
+        else:
+            person_id = db.persons()[0]["id"] if db.persons() else 0
     p = db.person(person_id)
     return (p, None) if p else (None, {"error": f"no person {person_id}"})
 
@@ -86,9 +99,10 @@ def _events_for_context(p: dict, date: str) -> tuple[list[dict], list[dict]]:
 @server.tool(description="Everything the agent needs before greeting the person: name, time of day, medications due, yesterday's summary, "
                          "family voice messages to play first, questions the family asked, today's appointments and reminders, who is away, "
                          "trend insights, the topics to cover, tone, and safety rules. Call this first.")
-def get_checkin_context(person_id: int) -> dict:
+def get_checkin_context(person_id: int = 0) -> dict:
     p, err = _person_or_error(person_id)
     if err: return err
+    person_id = p["id"]
     st = core.status(p)
     recent = db.recent_checkins(person_id, 7)
     yesterday = next((c for c in recent if c["date"] != st["date"] and c.get("completed_at")), None)
@@ -143,9 +157,10 @@ def mark_message_played(message_id: int) -> dict:
 
 @server.tool(description="Open today's check-in record. A completed check-in from earlier today is kept in history and a fresh record is started; "
                          "an unfinished one is resumed. Returns the checkin_id used by record_answer and complete_checkin.")
-def start_checkin(person_id: int) -> dict:
+def start_checkin(person_id: int = 0) -> dict:
     p, err = _person_or_error(person_id)
     if err: return err
+    person_id = p["id"]
     date = core.today_str(p)
     existing = db.checkin_for(person_id, date)
     if existing and not existing.get("completed_at"):
@@ -237,6 +252,7 @@ def complete_checkin(checkin_id: int, summary: str = "") -> dict:
 def request_help(person_id: int, reason: str, urgency: str = "urgent") -> dict:
     p, err = _person_or_error(person_id)
     if err: return err
+    person_id = p["id"]
     level = "urgent" if urgency != "concern" else "concern"
     alert = core.create_alert(person_id, level, "asked for help", reason)
     return {"ok": True, **alert, "say": "I've alerted your family. If this is an emergency, please call 911 now."}
@@ -247,6 +263,7 @@ def request_help(person_id: int, reason: str, urgency: str = "urgent") -> dict:
 def record_reply(person_id: int, transcript: str, contact_name: str = "", audio_base64: str = "", mime: str = "audio/webm") -> dict:
     p, err = _person_or_error(person_id)
     if err: return err
+    person_id = p["id"]
     named = next((c for c in db.contacts(person_id) if contact_name and contact_name.lower() in c["name"].lower()), None)
     cs = core.active_contacts(person_id)
     target = named or (cs[0] if cs else None)
@@ -265,6 +282,7 @@ def record_reply(person_id: int, transcript: str, contact_name: str = "", audio_
 def add_event(person_id: int, date: str, title: str, time: str = "", kind: str = "appointment", notes: str = "", added_by: str = "", remind_day_before: bool = True) -> dict:
     p, err = _person_or_error(person_id)
     if err: return err
+    person_id = p["id"]
     try:
         dt.date.fromisoformat(date)
     except ValueError:
@@ -275,18 +293,20 @@ def add_event(person_id: int, date: str, title: str, time: str = "", kind: str =
 
 
 @server.tool(description="Upcoming appointments and reminders for the next N days (default 7).")
-def list_events(person_id: int, days: int = 7) -> dict:
+def list_events(person_id: int = 0, days: int = 7) -> dict:
     p, err = _person_or_error(person_id)
     if err: return err
+    person_id = p["id"]
     d = dt.date.fromisoformat(core.today_str(p))
     rows = db.events_between(person_id, d.isoformat(), (d + dt.timedelta(days=max(1, min(60, days)))).isoformat())
     return {"events": [{"id": e["id"], "date": e["date"], "time": _fmt_time(e.get("time") or ""), "title": e["title"], "kind": e["kind"], "status": e["status"], "notes": e.get("notes") or ""} for e in rows]}
 
 
 @server.tool(description="Caregiver query, e.g. 'how is Mom today?': today's check-in state, concern level, summary, open alerts, pending messages, who is away.")
-def get_status(person_id: int) -> dict:
+def get_status(person_id: int = 0) -> dict:
     p, err = _person_or_error(person_id)
     if err: return err
+    person_id = p["id"]
     st = core.status(p)
     st["open_alert_details"] = [{"level": a["level"], "reason": a["reason"], "detail": a["detail"], "at": a["created_at"]} for a in db.open_alerts(person_id)]
     st["trend_insights"] = core.trends(person_id, 7)["insights"]
@@ -294,7 +314,7 @@ def get_status(person_id: int) -> dict:
 
 
 @server.tool(description="The person wants to talk later. Pauses the missed-check-in escalation for the given minutes (max 180).")
-def snooze_checkin(person_id: int, minutes: int = 30) -> dict:
+def snooze_checkin(person_id: int = 0, minutes: int = 30) -> dict:
     minutes = max(5, min(180, int(minutes)))
     until = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=minutes)).replace(microsecond=0).isoformat()
     db.execute("INSERT INTO snoozes(person_id, until) VALUES (?,?) ON CONFLICT(person_id) DO UPDATE SET until=excluded.until", (person_id, until))
@@ -305,6 +325,7 @@ def snooze_checkin(person_id: int, minutes: int = 30) -> dict:
 def log_medication(person_id: int, medication: str, taken: bool = True) -> dict:
     p, err = _person_or_error(person_id)
     if err: return err
+    person_id = p["id"]
     date = core.today_str(p)
     c = db.checkin_for(person_id, date)
     if not c:

@@ -7,11 +7,27 @@ from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
-from . import db, core, escalation, agent
-from .mcp_server import server, TOOLS
+from . import db, core, escalation, agent, auth
+from .mcp_server import server, TOOLS, AUTH_PROVIDER
 
 WEB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
-mcp_app = server.streamable_http_app(streamable_http_path="/mcp", stateless_http=True, json_response=True)
+
+
+def _transport_security():
+    """DNS-rebinding protection: accept local hosts plus the public host (tunnel or domain) from HEARTH_PUBLIC_URL."""
+    from urllib.parse import urlparse
+    from mcp.server.transport_security import TransportSecuritySettings
+    hosts = ["127.0.0.1", "127.0.0.1:*", "localhost", "localhost:*"]
+    origins = ["http://127.0.0.1", "http://127.0.0.1:*", "http://localhost", "http://localhost:*"]
+    pu = auth.public_url()
+    if pu:
+        netloc = urlparse(pu).netloc
+        hosts += [netloc, netloc.split(":")[0]]
+        origins += [pu]
+    return TransportSecuritySettings(enable_dns_rebinding_protection=True, allowed_hosts=hosts, allowed_origins=origins)
+
+
+mcp_app = server.streamable_http_app(streamable_http_path="/mcp", stateless_http=True, json_response=True, transport_security=_transport_security())
 
 
 def _page(name: str):
@@ -191,7 +207,9 @@ app = Starlette(routes=[
     Route("/api/sim/start", api_sim_start, methods=["POST"]), Route("/api/sim/turn", api_sim_turn, methods=["POST"]),
     Route("/api/tool", api_tool, methods=["POST"]), Route("/api/watchdog/run", api_watchdog, methods=["POST"]),
     Route("/api/demo/missed", api_demo_missed, methods=["POST"]), Route("/api/demo/reset", api_demo_reset, methods=["POST"]),
+    *(auth.override_routes(mcp_app, AUTH_PROVIDER) if AUTH_PROVIDER else []),
     Mount("/static", app=StaticFiles(directory=WEB), name="static"),
+    Mount("/assets", app=StaticFiles(directory=os.path.join(os.path.dirname(WEB), "assets"), check_dir=False), name="assets"),
     Mount("/", app=mcp_app),
 ], lifespan=lifespan)
 
