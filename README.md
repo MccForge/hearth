@@ -180,7 +180,7 @@ Amazon's Local Inspector, which grades an add-on against the published [function
 python tests/certification_check.py     # READY: 22 pass, 0 warn, 0 fail
 ```
 
-**Scenario suite.** `tests/scenarios.py` runs twelve different Margarets through the host, cooperative, chatty, vague, low and lonely, refusing, forgetting her pills, dizzy and unfed, mentioning a fall, sending Anna a message, adding an appointment, chest tightness, fallen and unable to get up, and checks what was recorded, which flags fired, the concern level, and who was alerted. `--host scripted` is free and deterministic (12/12); `--host llm` runs the same personas through the configured Bedrock model and writes `scenario-results-llm.json`, transcripts included.
+**Scenario suite.** `tests/scenarios.py` runs twelve different Margarets through the host, cooperative, chatty, vague, low and lonely, refusing, forgetting her pills, dizzy and unfed, mentioning a fall, sending Anna a message, adding an appointment, chest tightness, fallen and unable to get up, and checks what was recorded, which flags fired, the concern level, and who was alerted. `--host scripted` is free and deterministic (12/12); `--host llm` runs the same personas through the configured Bedrock model and writes `scenario-results-llm.json`, transcripts included. Claude Sonnet 4.6 on Bedrock: 12/12, with both emergencies escalated on the first turn and the refusal snoozed without a nag.
 
 `addon/manifest.json` holds the store listing: name, plain-language description, example phrases, prerequisites, privacy and terms URLs, icons in every required size, and the MCP and account-linking endpoints.
 
