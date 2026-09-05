@@ -21,6 +21,7 @@ Every morning, inside the check-in window, the assistant runs a two-minute conve
 - **Escalation watchdog** with idempotent per-day ladder levels and an injectable clock.
 - **Caregiver dashboard**: status, 14-day timeline with the actual words, alerts to acknowledge, trends, calendar, voice-message recorder with scheduling, questions queue, contacts with away mode, window settings.
 - **Alexa+ simulator**: an Echo Show style device and the family's phone in one page. It implements the host side of MCP Apps (sandboxed frames, initialize, tool input and results, `ui/message` back into the conversation, `tools/call` from a view), drives a scripted host with light language handling and no API dependency, or an LLM host over any OpenAI-compatible endpoint. Plays family audio, records voice notes back, shows every MCP call live. Speech in and out via the browser.
+- **Certification self-check**: Amazon's inspector is preview-only, so `tests/certification_check.py` grades Hearth against the published functional requirements over the real endpoint and writes `certification-verdict.json` (22 rules, all passing): invocable tools, schemas, error shapes, stable ids, latency, continuity, views, metadata, OAuth.
 - **Tests**: 19, covering parsers, negation, fresh-per-day records, context assembly, away routing, audio round-trip, events, ladder timing, snooze, the scripted host end to end, the MCP Apps surface over Streamable HTTP, and the two-tier OAuth flow.
 
 ## Challenges

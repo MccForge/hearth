@@ -114,7 +114,7 @@ class AppView {
     locale: 'en-US', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, platform: 'web', userAgent: 'Hearth-Alexa-simulator/0.4', deviceCapabilities: {touch: true, hover: false},
     safeAreaInsets: this.surface.insets(r), toolInfo: this.tool ? {id: this.tool.id, tool: {name: this.tool.name}} : undefined}; }
   async handle(m) {
-    if (m.method === undefined) return;                                     // responses to our own requests (teardown etc.)
+    if (m.method === undefined) { if (m.id === 'dbg') window.lastResp = m.result || m.error; return; }   // responses to our own requests
     switch (m.method) {
       case 'ui/initialize': this.reply(m.id, {protocolVersion: '2026-01-26', hostInfo: {name: 'Hearth Alexa+ simulator', version: '0.4.0'}, hostCapabilities: {serverTools: {}, openLinks: {}}, hostContext: this.context()}); break;
       case 'ui/notifications/initialized': this.ready = true; this.queue.splice(0).forEach(x => this.post(x)); break;
@@ -124,7 +124,7 @@ class AppView {
       case 'ui/open-link': window.open(m.params.url, '_blank', 'noopener'); this.reply(m.id, {}); break;
       case 'ui/request-display-mode': this.reply(m.id, {mode: 'inline'}); break;
       case 'ui/update-model-context': this.reply(m.id, {}); break;
-      case 'notifications/message': console.log('[app ' + this.uri + ']', m.params); break;
+      case 'notifications/message': (m.params && m.params.level === 'error' ? console.error : console.log)('[app ' + this.uri + ']', JSON.stringify(m.params)); window.viewLog = (window.viewLog || []).concat([m.params]); break;
       case 'ping': this.reply(m.id, {}); break;
       default: if (m.id !== undefined) this.post({jsonrpc: '2.0', id: m.id, error: {code: -32601, message: 'Method not found'}});
     }

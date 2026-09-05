@@ -168,6 +168,16 @@ The Alexa AI CLI needs Node 24 on macOS or Ubuntu (WSL works), an Amazon develop
 
 **Where this stands, honestly.** As of September 2026 the MCP Toolkit is a private preview: Amazon's builder page says it is "available to select partners working directly with our team", the CLI's registry only admits allow-listed AWS accounts, and the hackathon organizers confirmed that participants have no way to call Alexa+ during the contest. So the simulator is the demo surface, and everything above is built to the published requirements so that switching to the real host is configuration, not code.
 
+## Certification self-check
+
+Amazon's Local Inspector, which grades an add-on against the published [functional requirements](https://developer.amazon.com/docs/alexaplus/add-ons/functional-requirements.html), is part of the private preview. `tests/certification_check.py` does the same job from the outside: it walks the real Streamable HTTP endpoint, invokes every tool in a realistic order and times it, checks schemas, error shapes, stable identifiers, fresh-start continuity, the MCP App views, the store metadata in `addon/manifest.json`, and the two-tier OAuth flow. It writes `certification-verdict.json`, the same kind of artifact the inspector produces.
+
+```bash
+python tests/certification_check.py     # READY: 22 pass, 0 warn, 0 fail
+```
+
+`addon/manifest.json` holds the store listing: name, plain-language description, example phrases, prerequisites, privacy and terms URLs, icons in every required size, and the MCP and account-linking endpoints.
+
 ## Status and roadmap
 
 Built for the Amazon Developer Hackathon 2026, Alexa+ track. Working: everything above, including account linking and the on-screen views. Next: real device testing when the Alexa+ toolkit opens up, an LLM host on Amazon Bedrock, email and SMS through AWS, multiple households per instance, a weekly family digest, and a phone-call fallback when the device gets no answer.

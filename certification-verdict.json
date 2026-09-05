@@ -1,0 +1,161 @@
+{
+  "generated": "2026-09-05T21:35:00+00:00",
+  "server": "hearth",
+  "checklist": "Alexa+ add-on functional requirements (published)",
+  "summary": {
+    "pass": 22,
+    "warn": 0,
+    "fail": 0,
+    "verdict": "READY"
+  },
+  "rules": [
+    {
+      "id": "0.1",
+      "title": "Server initializes over Streamable HTTP with spec 2025-11-25",
+      "status": "pass",
+      "evidence": "HTTP 200, protocolVersion=2025-11-25, instructions=801 chars"
+    },
+    {
+      "id": "4.2",
+      "title": "'What can you do?' has an answer: server instructions describe the flow",
+      "status": "pass",
+      "evidence": "Hearth runs a short, warm daily check-in with a person who lives alone and keeps their family informed. person_id 0 mean\u2026"
+    },
+    {
+      "id": "13.2",
+      "title": "Every tool declares a valid JSON Schema inputSchema with required parameters present in properties",
+      "status": "pass",
+      "evidence": "14 tools; invalid: none"
+    },
+    {
+      "id": "13.5",
+      "title": "Tool descriptions are clear prose (40+ characters, no JSON)",
+      "status": "pass",
+      "evidence": "weak: none"
+    },
+    {
+      "id": "13.6",
+      "title": "Parameter descriptions include examples or synonyms",
+      "status": "pass",
+      "evidence": "11/14 tools carry examples"
+    },
+    {
+      "id": "13.1",
+      "title": "Every tool returned by tools/list is invocable (no dead or placeholder entries)",
+      "status": "pass",
+      "evidence": "invoked 14; failures: none; not exercised: none"
+    },
+    {
+      "id": "13.4",
+      "title": "Tools return stable identifiers the next call can use",
+      "status": "pass",
+      "evidence": "ids seen: ['alert_id', 'checkin_id', 'event_id', 'message_id']"
+    },
+    {
+      "id": "2.5",
+      "title": "Round-trip under 500 ms per tool call (local measurement)",
+      "status": "pass",
+      "evidence": "max 44 ms (start_checkin); slow: none"
+    },
+    {
+      "id": "2.1",
+      "title": "Unexpected parameters get a structured, actionable error (no stack trace, no internal ids)",
+      "status": "pass",
+      "evidence": "{\"error\": \"unknown field shoe_size\", \"fields\": {\"mood\": \"1-5 how they feel\", \"sleep\": \"1-5 how they slept\", \"meds_taken\": \"yes/no\", \"ate\": \""
+    },
+    {
+      "id": "2.2",
+      "title": "Unknown record ids fail gracefully",
+      "status": "pass",
+      "evidence": "{\"error\": \"no check-in 999999\"}"
+    },
+    {
+      "id": "2.3",
+      "title": "Unknown person fails gracefully with a next step",
+      "status": "pass",
+      "evidence": "{\"error\": \"no person 999\"}"
+    },
+    {
+      "id": "1.4",
+      "title": "A fresh start after a completed check-in creates a new record and keeps the old one",
+      "status": "pass",
+      "evidence": "completed id 15 -> new id 16"
+    },
+    {
+      "id": "1.1",
+      "title": "Answers can be updated independently (field-by-field record_answer)",
+      "status": "pass",
+      "evidence": "record_answer(field, value, quote)"
+    },
+    {
+      "id": "9.2",
+      "title": "Voice-only surfaces present at most 5 options at a time",
+      "status": "pass",
+      "evidence": "list_events(7 days) returned 3 events"
+    },
+    {
+      "id": "11.1",
+      "title": "Every _meta.ui.resourceUri resolves to a readable MCP App resource with the right mime type",
+      "status": "pass",
+      "evidence": "3 views, 3 referenced, dangling: none"
+    },
+    {
+      "id": "6.1",
+      "title": "Two-tier OAuth 2.1: 401 without a token, client_credentials service tier, PKCE user tier, refresh rotation, linked person",
+      "status": "pass",
+      "evidence": "OAUTH_FLOW_OK"
+    },
+    {
+      "id": "5.1",
+      "title": "Plain-language description without API names, tool names or JSON",
+      "status": "pass",
+      "evidence": "Every morning Hearth has a short, warm conversation with the person: how they feel, how they slept, \u2026"
+    },
+    {
+      "id": "5.2",
+      "title": "Prerequisites stated (account linking)",
+      "status": "pass",
+      "evidence": "Account linking: the family sets up Hearth and links the device to the person it looks after."
+    },
+    {
+      "id": "5.3",
+      "title": "Privacy policy and terms of use URLs present and backed by files",
+      "status": "pass",
+      "evidence": "PRIVACY.md=True TERMS.md=True"
+    },
+    {
+      "id": "5.4",
+      "title": "Speakable, unambiguous add-on name",
+      "status": "pass",
+      "evidence": "Hearth"
+    },
+    {
+      "id": "5.5",
+      "title": "Icons in every required size, light and dark",
+      "status": "pass",
+      "evidence": "sizes ('64', '72', '88', '126', '180', '241') x light/dark"
+    },
+    {
+      "id": "5.6",
+      "title": "At least 3 distinct example phrases",
+      "status": "pass",
+      "evidence": "Alexa, start my morning check-in; Alexa, how is Mom today?; Alexa, tell Hearth I have the dentist on Friday at ten"
+    }
+  ],
+  "timings_ms": {
+    "get_checkin_context": 10.4,
+    "get_family_message": 4.7,
+    "mark_message_played": 11.6,
+    "start_checkin": 44.0,
+    "record_answer": 40.3,
+    "complete_checkin": 39.7,
+    "request_help": 19.1,
+    "record_reply": 19.3,
+    "add_event": 11.4,
+    "list_events": 5.4,
+    "get_status": 8.1,
+    "snooze_checkin": 11.4,
+    "log_medication": 13.7,
+    "list_persons": 4.6
+  }
+}

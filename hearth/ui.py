@@ -42,6 +42,11 @@ const H = (() => {
   handlers['ui/notifications/host-context-changed'] = p => applyContext(p);
   handlers['ui/resource-teardown'] = () => ({});
   handlers['ping'] = () => ({});
+  handlers['hearth/debug'] = () => { const card = document.querySelector('.card'); const h1 = document.querySelector('h1'); const r = card && card.getBoundingClientRect();
+    return {sheets: document.styleSheets.length, rules: Array.from(document.styleSheets).map(s => { try { return s.cssRules.length; } catch (e) { return 'n/a'; } }), cardRect: r && [Math.round(r.width), Math.round(r.height)], cardBg: card && getComputedStyle(card).backgroundImage.slice(0, 40),
+      h1: h1 && h1.textContent, h1Color: h1 && getComputedStyle(h1).color, htmlStyle: document.documentElement.getAttribute('style'), inner: [innerWidth, innerHeight], docW: document.documentElement.scrollWidth, ready: document.readyState, ctx: !!ctx}; };
+  window.addEventListener('error', e => notify('notifications/message', {level: 'error', data: {message: String(e.message), line: e.lineno, source: 'view'}}));
+  window.addEventListener('unhandledrejection', e => notify('notifications/message', {level: 'error', data: {message: String(e.reason && e.reason.message || e.reason), source: 'view'}}));
   return {request, notify, on: (m, f) => { handlers[m] = f; }, connect, sizeChanged, get ctx() { return ctx; }};
 })();
 const $ = id => document.getElementById(id);

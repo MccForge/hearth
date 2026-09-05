@@ -1,0 +1,38 @@
+{
+  "name": "Hearth",
+  "invocation_name": "Hearth",
+  "version": "0.5.0",
+  "short_description": "A daily voice check-in for someone living alone, with the family kept in the loop.",
+  "long_description": "Every morning Hearth has a short, warm conversation with the person: how they feel, how they slept, whether they took their medication, whether they have eaten, anything bothering them, today's appointments, questions the family asked, plans for the day. It plays messages the family recorded in their own voices, records what the person says, and sends the family a plain-language summary. If a fall, chest pain, dizziness or a missed check-in comes up, it tells the family right away.",
+  "category": "Health & Wellness",
+  "keywords": ["check-in", "living alone", "caregiver", "family", "medication reminder", "daily call", "older adults"],
+  "example_phrases": [
+    "Alexa, start my morning check-in",
+    "Alexa, how is Mom today?",
+    "Alexa, tell Hearth I have the dentist on Friday at ten"
+  ],
+  "prerequisites": "Account linking: the family sets up Hearth and links the device to the person it looks after.",
+  "privacy_policy_url": "https://github.com/MccForge/hearth/blob/master/PRIVACY.md",
+  "terms_of_use_url": "https://github.com/MccForge/hearth/blob/master/TERMS.md",
+  "support_url": "https://github.com/MccForge/hearth/issues",
+  "mcp": {
+    "server_url": "https://<your-public-host>/mcp",
+    "transport": "streamable-http",
+    "spec_version": "2025-11-25",
+    "authentication": {
+      "service": {"grant_type": "client_credentials", "scope": "mcp:service", "token_endpoint": "https://<your-public-host>/token"},
+      "user": {"grant_type": "authorization_code", "pkce": "S256", "scope": "mcp:tools mcp:resources", "authorization_endpoint": "https://<your-public-host>/authorize", "token_endpoint": "https://<your-public-host>/token"}
+    },
+    "account_linking": {"consent_page": "https://<your-public-host>/link", "maps_to": "one person per linked device"}
+  },
+  "surfaces": {
+    "voice_only": "Every feature works by voice alone; the host speaks the cards' content.",
+    "screen": "MCP App views: ui://hearth/checkin, ui://hearth/calendar, ui://hearth/status"
+  },
+  "icons": {
+    "light": {"64": "assets/icon_light_64.png", "72": "assets/icon_light_72.png", "88": "assets/icon_light_88.png", "126": "assets/icon_light_126.png", "180": "assets/icon_light_180.png", "241": "assets/icon_light_241.png", "512": "assets/icon_light_512.png"},
+    "dark": {"64": "assets/icon_dark_64.png", "72": "assets/icon_dark_72.png", "88": "assets/icon_dark_88.png", "126": "assets/icon_dark_126.png", "180": "assets/icon_dark_180.png", "241": "assets/icon_dark_241.png", "512": "assets/icon_dark_512.png"},
+    "carousel": "assets/carousel_600x900.png",
+    "banner": "assets/banner_1600x480.png"
+  }
+}
