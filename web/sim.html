@@ -210,7 +210,7 @@ function bubble(who, text, cls) { const d = document.createElement('div'); d.cla
 function caption(text, you) { const c = document.getElementById('caption'); if (!text) { c.classList.remove('on'); } else { c.innerHTML = (you ? `<div class="you">“${esc(you)}”</div>` : '') + esc(text); c.classList.add('on'); } echo.notifyResize(); }
 function voiceById(id) { return (speechSynthesis.getVoices() || []).find(v => v.voiceURI === id || v.name === id) || null; }
 let NARRATION = 'browser';
-async function speakPolly(text, who) { try { const r = await fetch('/api/tts?who=' + encodeURIComponent(who || 'hearth') + '&text=' + encodeURIComponent(text)); if (!r.ok) return false; const blob = await r.blob(); const url = URL.createObjectURL(blob);
+async function speakPolly(text, who) { try { const r = await fetch('/api/tts?who=' + encodeURIComponent(who || 'hearth') + '&text=' + encodeURIComponent(text)); if (!r.ok) { NARRATION = 'browser'; document.getElementById('narration').textContent = 'voices: browser'; return false; } const blob = await r.blob(); const url = URL.createObjectURL(blob);
   await new Promise(res => { const a = new Audio(url); a.onended = res; a.onerror = res; a.play().catch(res); }); URL.revokeObjectURL(url); return true; } catch (e) { return false; } }
 function speak(text, who) { return new Promise(async res => { if (!document.getElementById('speak').checked || !text) return res(); if (NARRATION === 'polly' && await speakPolly(text, who)) return res(); if (!window.speechSynthesis) return res();
   const u = new SpeechSynthesisUtterance(text); const sel = document.getElementById(who === 'margaret' ? 'voiceMargaret' : 'voiceHearth'); const v = sel && voiceById(sel.value); if (v) u.voice = v;
