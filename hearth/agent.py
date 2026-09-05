@@ -579,7 +579,8 @@ def _llm_turn(s: dict, user_text: str | None) -> str:
             except Exception as ex:
                 return f"(LLM error: {ex})"
         calls = msg.get("tool_calls") or []
-        content = re.sub(r"\((?:wait|user|pause|listen)[^)]*\)", "", msg.get("content") or "", flags=re.I).strip()
+        content = re.sub(r"\((?:wait|user|pause|listen)[^)]*\)", "", msg.get("content") or "", flags=re.I)
+        content = re.sub(r"[*_#`]+", "", content).strip()                      # spoken aloud: no markdown
         if not calls:
             if not content and not s.get("_nudged"):              # recorded but said nothing: ask for the spoken line once
                 s["_nudged"] = True
