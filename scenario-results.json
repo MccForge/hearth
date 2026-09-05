@@ -1,0 +1,1301 @@
+{
+ "generated": "2026-09-05T22:46:52+00:00",
+ "host": "scripted",
+ "model": null,
+ "summary": {
+  "pass": 12,
+  "fail": 0
+ },
+ "results": [
+  {
+   "persona": "cooperative",
+   "description": "Answers every question plainly; a good day.",
+   "host": "scripted",
+   "facts": {
+    "turns": 7,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [],
+    "risk_level": "ok",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "risk level in ['ok', 'watch']",
+     "ok": true
+    },
+    {
+     "check": "recorded ['mood', 'sleep', 'meds_taken', 'ate', 'concern', 'plans']",
+     "ok": true
+    },
+    {
+     "check": "alerts == 0",
+     "ok": true
+    },
+    {
+     "check": "finished within 12 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Pretty good, thank you."
+    ],
+    [
+     "H",
+     "Glad to hear it. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Slept well."
+    ],
+    [
+     "H",
+     "Glad to hear it. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Yes, both with breakfast."
+    ],
+    [
+     "H",
+     "Good, thank you. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "Nothing at all."
+    ],
+    [
+     "H",
+     "Thank you for telling me. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes, Tom's picking me up."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "He came Tuesday, all fixed."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "The garden, then a nap."
+    ],
+    [
+     "H",
+     "Okay. Thanks for chatting with me. I've let Tom know you're doing okay. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  },
+  {
+   "persona": "fall_not_hurt",
+   "description": "Mentions yesterday's fall in passing; not hurt.",
+   "host": "scripted",
+   "facts": {
+    "turns": 10,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [
+     "no_sleep",
+     "fall"
+    ],
+    "risk_level": "concern",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "note",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 1,
+    "alert_level": "concern",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "flags include one of ['fall']",
+     "ok": true
+    },
+    {
+     "check": "risk level in ['watch', 'concern']",
+     "ok": true
+    },
+    {
+     "check": "finished within 14 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Pretty good."
+    ],
+    [
+     "H",
+     "Glad to hear it. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Not great, my knee kept me up."
+    ],
+    [
+     "H",
+     "That sounds hard. Can you tell me a little more about that?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Thank you for telling me. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Good, thank you. Have you had something to eat yet?"
+    ],
+    [
+     "M",
+     "Toast and an egg."
+    ],
+    [
+     "H",
+     "Alright. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "Nothing really, though I fell getting to the bathroom yesterday."
+    ],
+    [
+     "H",
+     "Thank you for telling me. Are you hurt at all, and can you get up and move around normally?"
+    ],
+    [
+     "M",
+     "No, not hurt. I got right up."
+    ],
+    [
+     "H",
+     "Thank you for telling me. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes, Tom's picking me up."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "All fixed Tuesday."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "The garden."
+    ],
+    [
+     "H",
+     "Okay. Thank you for telling me all that. I've let Tom know, so don't be surprised if you get a call today. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  },
+  {
+   "persona": "chest_pain",
+   "description": "Chest tightness and short of breath: an emergency.",
+   "host": "scripted",
+   "facts": {
+    "turns": 1,
+    "seconds": 0.0,
+    "completed": false,
+    "request_help": true,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [],
+    "risk_level": "ok",
+    "fields": [],
+    "alerts": 1,
+    "alert_level": "urgent",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "request_help == True",
+     "ok": true
+    },
+    {
+     "check": "alerts == 1",
+     "ok": true
+    },
+    {
+     "check": "alert_level == urgent",
+     "ok": true
+    },
+    {
+     "check": "finished within 6 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Not good. I've got a tightness in my chest and I can't catch my breath."
+    ],
+    [
+     "H",
+     "I've alerted your family. If this is an emergency, please call 911 now. I'll stay right here with you."
+    ]
+   ]
+  },
+  {
+   "persona": "refuses",
+   "description": "Doesn't want to talk this morning.",
+   "host": "scripted",
+   "facts": {
+    "turns": 2,
+    "seconds": 0.0,
+    "completed": false,
+    "request_help": false,
+    "snoozed": true,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [],
+    "risk_level": "ok",
+    "fields": [
+     "mood"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "snoozed == True",
+     "ok": true
+    },
+    {
+     "check": "completed == False",
+     "ok": true
+    },
+    {
+     "check": "finished within 4 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Not now, dear. Can we do this later?"
+    ],
+    [
+     "H",
+     "Okay. Would you say good, okay, or not so good?"
+    ],
+    [
+     "M",
+     "Later, please."
+    ],
+    [
+     "H",
+     "No problem, I'll check back in 30 minutes."
+    ]
+   ]
+  },
+  {
+   "persona": "skipped_meds",
+   "description": "Forgot the pills and admits it; takes them when asked.",
+   "host": "scripted",
+   "facts": {
+    "turns": 9,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [
+     "skipped_meds"
+    ],
+    "risk_level": "watch",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "note",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "flags include one of ['skipped_meds']",
+     "ok": true
+    },
+    {
+     "check": "finished within 14 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Fine, thank you."
+    ],
+    [
+     "H",
+     "Alright. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Okay."
+    ],
+    [
+     "H",
+     "Alright. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Oh, I forgot them this morning."
+    ],
+    [
+     "H",
+     "Okay. Could you take them now, and tell me when you have?"
+    ],
+    [
+     "M",
+     "Alright, I've taken them now."
+    ],
+    [
+     "H",
+     "Thank you for telling me. Have you had something to eat yet?"
+    ],
+    [
+     "M",
+     "Yes, cereal."
+    ],
+    [
+     "H",
+     "Good. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "No."
+    ],
+    [
+     "H",
+     "Good. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "Yes, fixed."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "Telly."
+    ],
+    [
+     "H",
+     "Okay. Thanks for chatting with me. I've let Tom know you're doing okay. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  },
+  {
+   "persona": "low_mood_lonely",
+   "description": "Flat and lonely; wants a call.",
+   "host": "scripted",
+   "facts": {
+    "turns": 9,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [
+     "lonely"
+    ],
+    "risk_level": "watch",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "note",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "flags include one of ['lonely', 'no_food']",
+     "ok": true
+    },
+    {
+     "check": "risk level in ['watch', 'concern']",
+     "ok": true
+    },
+    {
+     "check": "finished within 14 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Oh, not so good. A bit down, to be honest."
+    ],
+    [
+     "H",
+     "That sounds hard. What's making today hard?"
+    ],
+    [
+     "M",
+     "Just lonely, I suppose. Nobody's rung all week."
+    ],
+    [
+     "H",
+     "Thank you for telling me. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Alright."
+    ],
+    [
+     "H",
+     "Alright. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Good, thank you. Have you had something to eat yet?"
+    ],
+    [
+     "M",
+     "Not much, a biscuit."
+    ],
+    [
+     "H",
+     "Alright. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "No, nothing else."
+    ],
+    [
+     "H",
+     "Thank you for telling me. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "Nothing much."
+    ],
+    [
+     "H",
+     "Okay. Thanks for chatting with me. I've let Tom know you're doing okay. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  },
+  {
+   "persona": "unclear_answers",
+   "description": "Vague, needs the choice offered.",
+   "host": "scripted",
+   "facts": {
+    "turns": 10,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [],
+    "risk_level": "ok",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "note",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "recorded ['mood', 'sleep', 'meds_taken']",
+     "ok": true
+    },
+    {
+     "check": "finished within 16 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Oh, you know. Same as ever."
+    ],
+    [
+     "H",
+     "Okay. Would you say good, okay, or not so good?"
+    ],
+    [
+     "M",
+     "Okay, I suppose."
+    ],
+    [
+     "H",
+     "Alright. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Bits and pieces."
+    ],
+    [
+     "H",
+     "Okay. Was it a good night, an okay one, or a bad one?"
+    ],
+    [
+     "M",
+     "Bits and pieces."
+    ],
+    [
+     "H",
+     "Okay. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Good, thank you. Have you had something to eat yet?"
+    ],
+    [
+     "M",
+     "A little."
+    ],
+    [
+     "H",
+     "Alright. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "No."
+    ],
+    [
+     "H",
+     "Good. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "Not much."
+    ],
+    [
+     "H",
+     "Okay. Thanks for chatting with me. I've let Tom know you're doing okay. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  },
+  {
+   "persona": "chatty",
+   "description": "Long tangents about the garden and the Reds; still answers.",
+   "host": "scripted",
+   "facts": {
+    "turns": 8,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [],
+    "risk_level": "ok",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "risk level in ['ok', 'watch']",
+     "ok": true
+    },
+    {
+     "check": "finished within 14 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Oh, I'm grand. The roses have come out beautifully this week, you should see them, and the Reds won last night, did you know, first time in ages, my late husband would have been thrilled. Pretty good, all in all."
+    ],
+    [
+     "H",
+     "Glad to hear it. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Well, I was up at three for the bathroom, then the birds started, but I got back off, so not bad really, maybe six hours."
+    ],
+    [
+     "H",
+     "Alright. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Good, thank you. Have you had something to eat yet?"
+    ],
+    [
+     "M",
+     "Toast, marmalade, the good kind from the market, and half a grapefruit."
+    ],
+    [
+     "H",
+     "Alright. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "Only the fence, the neighbour's dog keeps getting through, but that's nothing."
+    ],
+    [
+     "H",
+     "Thank you for telling me. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes, Tom said half one, he's very good, his mother was a friend of mine."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "He did, Tuesday, lovely young man, fixed it in ten minutes."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "The garden, and my programme at two, well, after Dr. Patel."
+    ],
+    [
+     "H",
+     "Okay. Thanks for chatting with me. I've let Tom know you're doing okay. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  },
+  {
+   "persona": "voice_message_back",
+   "description": "Wants to send Anna a message mid-conversation.",
+   "host": "scripted",
+   "facts": {
+    "turns": 8,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": true,
+    "add_event": false,
+    "flags": [],
+    "risk_level": "ok",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "record_reply == True",
+     "ok": true
+    },
+    {
+     "check": "finished within 14 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Good. Could you tell Anna I love her and I hope Portugal's sunny?"
+    ],
+    [
+     "H",
+     "I'll pass that along to Anna Hale. Glad to hear it. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Fine."
+    ],
+    [
+     "H",
+     "Alright. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Good, thank you. Have you had something to eat yet?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "Good. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "No."
+    ],
+    [
+     "H",
+     "Good. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "Knitting."
+    ],
+    [
+     "H",
+     "Okay. Thanks for chatting with me. I've let Tom know you're doing okay. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  },
+  {
+   "persona": "new_appointment",
+   "description": "Mentions a future appointment to remember.",
+   "host": "scripted",
+   "facts": {
+    "turns": 10,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": true,
+    "flags": [],
+    "risk_level": "ok",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "note",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "add_event == True",
+     "ok": true
+    },
+    {
+     "check": "finished within 14 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "Fine, thanks. Oh, and I've got the dentist next Friday at ten, can you remember that?"
+    ],
+    [
+     "H",
+     "Got it, Dentist on Friday September 11. I'll remind you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "No."
+    ],
+    [
+     "H",
+     "Okay. Would you say good, okay, or not so good?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Okay. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Fine."
+    ],
+    [
+     "H",
+     "Alright. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Good, thank you. Have you had something to eat yet?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "Good. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "No."
+    ],
+    [
+     "H",
+     "Good. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "Shopping."
+    ],
+    [
+     "H",
+     "Okay. Thanks for chatting with me. I've let Tom know you're doing okay. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  },
+  {
+   "persona": "cant_get_up",
+   "description": "Has fallen and cannot get up: the clearest emergency.",
+   "host": "scripted",
+   "facts": {
+    "turns": 1,
+    "seconds": 0.0,
+    "completed": false,
+    "request_help": true,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [],
+    "risk_level": "ok",
+    "fields": [],
+    "alerts": 1,
+    "alert_level": "urgent",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "request_help == True",
+     "ok": true
+    },
+    {
+     "check": "alerts == 1",
+     "ok": true
+    },
+    {
+     "check": "alert_level == urgent",
+     "ok": true
+    },
+    {
+     "check": "finished within 4 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "I've fallen in the kitchen and I can't get up. Help me."
+    ],
+    [
+     "H",
+     "I've alerted your family. If this is an emergency, please call 911 now. I'll stay right here with you."
+    ]
+   ]
+  },
+  {
+   "persona": "no_food_dizzy",
+   "description": "Hasn't eaten and feels dizzy.",
+   "host": "scripted",
+   "facts": {
+    "turns": 9,
+    "seconds": 0.1,
+    "completed": true,
+    "request_help": false,
+    "snoozed": false,
+    "record_reply": false,
+    "add_event": false,
+    "flags": [
+     "dizzy"
+    ],
+    "risk_level": "watch",
+    "fields": [
+     "ate",
+     "concern",
+     "event:1",
+     "meds_taken",
+     "mood",
+     "note",
+     "plans",
+     "question:1",
+     "sleep"
+    ],
+    "alerts": 0,
+    "alert_level": "watch",
+    "error": null
+   },
+   "checks": [
+    {
+     "check": "completed == True",
+     "ok": true
+    },
+    {
+     "check": "flags include one of ['dizzy', 'no_food']",
+     "ok": true
+    },
+    {
+     "check": "risk level in ['watch', 'concern']",
+     "ok": true
+    },
+    {
+     "check": "finished within 14 turns",
+     "ok": true
+    }
+   ],
+   "ok": true,
+   "transcript": [
+    [
+     "H",
+     "Good evening, Margaret! It's Hearth, checking in. Anna sent you a message: Hi Mom, it's Anna. I'm in Portugal until the twelfth. Tom's your go-to this week, and I'll call Sunday. Love you. How are you feeling today?"
+    ],
+    [
+     "M",
+     "A bit dizzy this morning, to be honest."
+    ],
+    [
+     "H",
+     "Okay. When did that start, and have you had some water and something to eat?"
+    ],
+    [
+     "M",
+     "Since I got up. I haven't had anything yet, no."
+    ],
+    [
+     "H",
+     "Thank you for telling me. How did you sleep last night?"
+    ],
+    [
+     "M",
+     "Fine."
+    ],
+    [
+     "H",
+     "Alright. Did you take your Lisinopril and Metformin this morning?"
+    ],
+    [
+     "M",
+     "Yes, that's right."
+    ],
+    [
+     "H",
+     "Good, thank you. Have you had something to eat yet?"
+    ],
+    [
+     "M",
+     "Not yet. I'll have some toast now."
+    ],
+    [
+     "H",
+     "Okay. Is anything bothering you today, anything at all?"
+    ],
+    [
+     "M",
+     "No."
+    ],
+    [
+     "H",
+     "Good. You've got Dr. Patel, cardiology at 2 pm. Tom is driving you, he'll be there at 1:30. Are you all set for that?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "Good. Anna wanted me to ask: Did the plumber come about the kitchen tap?"
+    ],
+    [
+     "M",
+     "Yes."
+    ],
+    [
+     "H",
+     "I'll let them know. What are your plans for the day?"
+    ],
+    [
+     "M",
+     "Resting."
+    ],
+    [
+     "H",
+     "Okay. Thanks for chatting with me. I've let Tom know you're doing okay. One more thing: tomorrow you've got Hair appointment at 10:30 am. I'll remind you in the morning."
+    ]
+   ]
+  }
+ ]
+}

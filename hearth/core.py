@@ -38,8 +38,8 @@ def window_bounds(person: dict, date: str) -> tuple[dt.datetime, dt.datetime]:
 FLAG_PATTERNS: dict[str, tuple[str, int, str]] = {
     # code: (regex, risk weight, caregiver-facing label)
     "emergency": (r"\b(911|ambulance|emergency|can'?t (get|stand) up|help me|need help)\b", 80, "asked for help"),
-    "chest_pain": (r"\b(chest (pain|tight|pressure|hurts)|my heart)\b", 60, "mentioned chest pain"),
-    "breathing": (r"\b(can'?t breathe|short(ness)? of breath|trouble breathing|breathing)\b", 60, "mentioned trouble breathing"),
+    "chest_pain": (r"\b(chest (pain|tight|tightness|pressure|hurts)|(tight|tightness|pressure|pain|heavy|heaviness) in (my |the )?chest|my heart)\b", 60, "mentioned chest pain"),
+    "breathing": (r"\b(can'?t (breathe|catch my breath)|cannot (breathe|catch my breath)|catch my breath|short(ness)? of breath|breathless|trouble breathing|(hard|struggling|struggle) to breathe|wheez\w*|breathing)\b", 60, "mentioned trouble breathing"),
     "fall": (r"\b(fell|fall|fallen|slipped|tripped)\b", 40, "mentioned a fall"),
     "confusion": (r"\b(confused|can'?t remember|what day is it|forgot where|don'?t know where)\b", 30, "sounded confused"),
     "dizzy": (r"\b(dizzy|lightheaded|light-headed|faint|woozy)\b", 25, "felt dizzy"),

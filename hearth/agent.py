@@ -36,12 +36,12 @@ def _call(session: dict, name: str, **args) -> Any:
 
 
 # ---------------------------------------------------------------- language helpers (scripted host)
-HELP_RE = re.compile(r"\b(help|911|ambulance|emergency|can'?t get up|can'?t breathe|chest pain|call (my )?(daughter|son|family|someone|anna|david|tom))\b", re.I)
+HELP_RE = re.compile(r"\b(help|911|ambulance|emergency|can'?t (get|stand) up|can'?t (breathe|catch my breath)|catch my breath|short of breath|chest (pain|tight|tightness|pressure)|(tight|tightness|pressure) in (my |the )?chest|call (my )?(daughter|son|family|someone|anna|david|tom))\b", re.I)
 HELP_NEG = re.compile(r"\b(don'?t|do not|no) (need )?(help|worry)|no emergency|not an emergency|i'?m (fine|okay|ok)\b", re.I)
 LATER_RE = re.compile(r"^\W*(?:(?:not (?:right )?now|later|maybe later|call (?:me )?back later|can (?:we|you) (?:do this|talk|chat) later|i'?m busy(?: right now)?|in a (?:bit|little while|few minutes)|please)\W*)+$", re.I)
 REPEAT_RE = re.compile(r"^\W*(what|pardon( me)?|sorry|say (that )?again|repeat that|what was that|come again|huh|i didn'?t (hear|catch) (that|you))\W*$", re.I)
 WHO_RE = re.compile(r"\b(who are you|who is this|what is this|are you a (person|robot|computer))\b", re.I)
-MSG_RE = re.compile(r"^\W*(?:can you |please |could you )?(?:tell|let)\s+(\w+)\s+(?:know\s+)?(?:that\s+)?(.+)$|^\W*(?:send|give|leave)\s+(?:a\s+)?(?:message|note)\s+(?:to|for)\s+(\w+)[:,]?\s+(.+)$|^\W*message\s+for\s+(\w+)[:,]?\s+(.+)$", re.I)
+MSG_RE = re.compile(r"(?:^|[.,!?;]\s*|\b(?:and|also|oh)\s+)(?:can you |please |could you |would you )?(?:tell|let)\s+(\w+)\s+(?:know\s+)?(?:that\s+)?(.+)$|^\W*(?:send|give|leave)\s+(?:a\s+)?(?:message|note)\s+(?:to|for)\s+(\w+)[:,]?\s+(.+)$|^\W*message\s+for\s+(\w+)[:,]?\s+(.+)$", re.I)
 APPT_RE = re.compile(r"\b(appointment|dentist|doctor|dr\.?\s+\w+|clinic|hairdresser|hair appointment|physio(therapy)?|check-?up|eye test|optician|podiatrist|the bank|blood test)\b", re.I)
 DATE_RE = re.compile(r"\b(today|tomorrow|day after tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|(?:on )?the (\d{1,2})(?:st|nd|rd|th)?|(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2})\b", re.I)
 TIME_RE = re.compile(r"\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|o'?clock|in the (?:morning|afternoon|evening))?\b", re.I)
@@ -224,12 +224,21 @@ def _scripted_turn(s: dict, text: str) -> str:
     if WHO_RE.search(t):
         return "I'm Hearth, the daily check-in your family set up so they know you're doing alright. " + (s["last_question"] or "")
     # 4. message to family
-    mm = MSG_RE.match(t)
+    mm = MSG_RE.search(t); msg_ack = ""
     if mm:
         name = mm.group(1) or mm.group(3) or mm.group(5); body = mm.group(2) or mm.group(4) or mm.group(6)
-        if name and name.lower() not in ("me", "you", "them"):
+        if name and name.lower() not in ("me", "you", "them", "him", "her"):
             r = _call(s, "record_reply", person_id=pid, transcript=body.strip(), contact_name=name)
-            return r.get("say", "I'll pass that along.") + (" " + s["last_question"] if s["last_question"] else "")
+            msg_ack = r.get("say", "I'll pass that along.")
+            prefix = re.sub(r"[\s.,!?;:]+$", "", t[:mm.start()]).strip()      # "Good. Could you tell Anna..." still answers the question
+            if len(prefix) < 2:
+                return msg_ack + (" " + s["last_question"] if s["last_question"] else "")
+            t = prefix
+    return (msg_ack + " " + _scripted_answer(s, t)).strip()
+
+
+def _scripted_answer(s: dict, t: str) -> str:
+    pid, cid = s["person_id"], s["checkin_id"]
     # 5. a future appointment mentioned in passing
     cur = _current(s)
     today = dt.date.fromisoformat(s["ctx"]["status"]["date"])
@@ -256,7 +265,8 @@ def _scripted_turn(s: dict, text: str) -> str:
             s["answered"].add(f); ack = _ack(f, r)
         else:
             r = _call(s, "record_answer", checkin_id=cid, field="note", value=t, quote=t)
-            if any(f in r.get("flags_added", []) for f in ("chest_pain", "breathing", "emergency")):
+            emergency_hint = "emergency" in (pend.get("hint") or "").lower()
+            if any(f in r.get("flags_added", []) for f in ("chest_pain", "breathing", "emergency")) or (emergency_hint and (M.parse_bool(t) == 1 or HELP_RE.search(t)) and not HELP_NEG.search(t)):
                 h = _call(s, "request_help", person_id=pid, reason=t, urgency="urgent"); s["done"] = True
                 return h.get("say", "I've alerted your family.") + " I'll stay right here with you."
             ack = "Thank you for telling me."
