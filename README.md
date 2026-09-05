@@ -107,6 +107,9 @@ Every message is written to the dashboard feed. Email (SMTP) and webhooks are wi
 | `HEARTH_WATCHDOG_SECONDS` | Ladder evaluation interval (default 60) |
 | `HEARTH_SMTP_HOST/PORT/USER/PASS/FROM` | Enable email to contacts with `channel=email` |
 | `HEARTH_LLM_BASE_URL/API_KEY/MODEL` | Optional: run the simulator with a real LLM host over any OpenAI-compatible endpoint |
+| `HEARTH_PUBLIC_URL` | Public HTTPS base URL. Setting it turns on OAuth for `/mcp` and the account-linking page |
+| `HEARTH_OAUTH_CLIENT_ID/SECRET` | The fixed client Alexa+ uses (from the developer console) |
+| `HEARTH_OAUTH_REDIRECT_URIS` | Comma-separated Alexa account-linking redirect URIs; any Amazon `/api/skill/link/` URI is also accepted |
 
 ## Privacy and safety
 
@@ -115,6 +118,36 @@ Every message is written to the dashboard feed. Email (SMTP) and webhooks are wi
 - The person can decline. "Not now" snoozes; nobody is nagged. The family is told only what was said.
 - Recordings are real voices, never synthesized imitations.
 - This is a hackathon prototype, not a medical device or an emergency service.
+
+## Connecting to Alexa+ (the real thing)
+
+Amazon's [Alexa+ MCP Toolkit](https://developer.amazon.com/docs/alexaplus/add-ons/mcp-toolkit-overview.html) connects a Streamable HTTP MCP server to Alexa+ as an add-on, testable in Amazon's web simulator at the development stage. Hearth meets the toolkit's checklist:
+
+- **Streamable HTTP, spec 2025-11-25**, stateless, JSON responses, under 500 ms per tool.
+- **OAuth 2.1, two tiers, as Alexa+ requires.** Service tier: `client_credentials` with HTTP Basic client auth, scope `mcp:service`, `resource` parameter validated against the server's canonical URI, 3600 s tokens, no refresh. User tier: `authorization_code` with PKCE S256, scopes `mcp:tools mcp:resources`, refresh tokens with rotation. Fixed client id and secret from the console; no dynamic client registration. Metadata at `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource`.
+- **Account linking is the consent page.** The customer lands on `/link`, says whose home the device is in, and every token from then on carries that person. Tools called with `person_id=0` resolve to the linked person; a service token can discover tools but cannot act for anyone.
+- **Store assets** in `assets/`: light and dark icons in the six required sizes, carousel and banner images. Privacy policy and terms in `PRIVACY.md` and `TERMS.md`.
+
+To run it publicly:
+
+```bash
+# 1. expose the server (any HTTPS tunnel; cloudflared needs no account)
+cloudflared tunnel --url http://127.0.0.1:8787
+
+# 2. start Hearth with the public URL and the client credentials from the Alexa developer console
+set HEARTH_PUBLIC_URL=https://<your-tunnel>.trycloudflare.com
+set HEARTH_OAUTH_CLIENT_ID=<from console>
+set HEARTH_OAUTH_CLIENT_SECRET=<from console>
+set HEARTH_OAUTH_REDIRECT_URIS=https://alexa.amazon.com/api/skill/link/<id>,https://pitangui.amazon.com/api/skill/link/<id>,https://layla.amazon.com/api/skill/link/<id>
+python -m hearth
+
+# 3. create and deploy the add-on with the Alexa AI CLI, then open the web simulator
+alexa-ai new mcp --name "Hearth" --locale en-US --mcp-server-url "$HEARTH_PUBLIC_URL/mcp"
+alexa-ai configure-account-linking
+alexa-ai deploy
+```
+
+The Alexa AI CLI needs Node 24 on macOS or Ubuntu (WSL works), an Amazon developer account, and an AWS account for its private npm registry. `tests/oauth_flow_check.py` exercises the exact flow the toolkit uses, end to end, without any of that.
 
 ## Status and roadmap
 

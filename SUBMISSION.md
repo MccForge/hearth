@@ -14,6 +14,7 @@ Every morning, inside the check-in window, the assistant runs a two-minute conve
 
 ## How we built it
 - **MCP server** (Python, official MCP SDK 2.x): fourteen tools, a resource, and a prompt over Streamable HTTP, MCP spec 2025-11-25, stateless and JSON-response so it sits behind any host. Family recordings are returned as MCP audio content.
+- **OAuth 2.1 shaped to the Alexa+ MCP Toolkit**: a service tier (`client_credentials`, HTTP Basic, `mcp:service`, resource-bound, 3600 s) for discovery, and a user tier (`authorization_code` + PKCE S256, `mcp:tools mcp:resources`, rotating refresh tokens) whose consent page is the account linking: the customer says whose home the device is in, and every token carries that person. Fixed client credentials, no DCR, metadata at both well-known paths, host allow-listing for the public tunnel. An end-to-end test walks the exact flow Alexa+ uses.
 - **Agent Skill** (`skill/SKILL.md`) that gives the host the conversation order, tone, interpretation rules, and hard safety boundaries.
 - **Domain logic**: transparent keyword flags with negation handling, concern scoring, summaries, seven-day trend insights, away-aware contact routing.
 - **Escalation watchdog** with idempotent per-day ladder levels and an injectable clock.

@@ -44,15 +44,34 @@ def resource_uri() -> str:
     return f"{public_url()}/mcp"
 
 
+class AlexaClient(OAuthClientInformationFull):
+    """Alexa+ redirects to one of several per-region account-linking URIs (https://alexa.amazon.com/api/skill/link/<id>, pitangui, layla, ...).
+    Registered URIs are matched exactly; otherwise any Amazon account-linking URI is accepted, so a missing region entry never blocks a customer."""
+
+    def validate_redirect_uri(self, redirect_uri):
+        from urllib.parse import urlparse
+        from mcp.shared.auth import InvalidRedirectUriError
+        if redirect_uri is not None and self.redirect_uris and redirect_uri in self.redirect_uris:
+            return redirect_uri
+        if redirect_uri is not None:
+            u = urlparse(str(redirect_uri))
+            if u.scheme == "https" and (u.hostname or "").endswith((".amazon.com", ".amazon.co.jp", ".amazon.co.uk", ".amazon.de")) and u.path.startswith("/api/skill/link/"):
+                return redirect_uri
+            raise InvalidRedirectUriError(f"Redirect URI '{redirect_uri}' not registered for client")
+        if self.redirect_uris and len(self.redirect_uris) == 1:
+            return self.redirect_uris[0]
+        raise InvalidRedirectUriError("redirect_uri must be specified")
+
+
 def fixed_client() -> OAuthClientInformationFull | None:
     cid = os.environ.get("HEARTH_OAUTH_CLIENT_ID", "").strip()
     if not cid:
         return None
     secret = os.environ.get("HEARTH_OAUTH_CLIENT_SECRET", "").strip() or None
     uris = [u.strip() for u in os.environ.get("HEARTH_OAUTH_REDIRECT_URIS", "").split(",") if u.strip()]
-    return OAuthClientInformationFull(client_id=cid, client_secret=secret, client_name="Alexa+", redirect_uris=uris or None,
-                                      grant_types=["authorization_code", "refresh_token", "client_credentials"], response_types=["code"],
-                                      token_endpoint_auth_method="client_secret_post" if secret else "none", scope=" ".join(SCOPES))
+    return AlexaClient(client_id=cid, client_secret=secret, client_name="Alexa+", redirect_uris=uris or None,
+                       grant_types=["authorization_code", "refresh_token", "client_credentials"], response_types=["code"],
+                       token_endpoint_auth_method="client_secret_post" if secret else "none", scope=" ".join(SCOPES))
 
 
 class HearthAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, RefreshToken, AccessToken]):
@@ -227,7 +246,15 @@ def override_routes(mcp_app, provider: HearthAuthProvider) -> list[Route]:
         body["scopes_supported"] = SCOPES
         return JSONResponse(body, headers={"Cache-Control": "public, max-age=3600"})
 
+    sdk_prm = _sdk_endpoint(mcp_app, "/.well-known/oauth-protected-resource/mcp")
+
+    async def prm_root(request: Request):
+        """Alexa+ discovers the authorization server from /.well-known/oauth-protected-resource (root); serve the same document there."""
+        return await _invoke(sdk_prm, request)
+
     routes = [Route("/token", token, methods=["POST"]), Route("/.well-known/oauth-authorization-server", metadata, methods=["GET"])]
+    if sdk_prm:
+        routes.append(Route("/.well-known/oauth-protected-resource", prm_root, methods=["GET"]))
     return routes + link_routes(provider)
 
 
