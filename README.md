@@ -46,6 +46,8 @@ The first run seeds a demo household: Margaret, 79, Columbus, two medications, d
 
 Run the tests with `python -m pytest -q tests`.
 
+**Hands-free demo.** In the simulator, pick a host (the scripted one, or Claude / Nova on Bedrock when a key is configured) and press **▶ Run demo**. It reseeds the household, starts the check-in, and answers as Margaret in a second voice, matching her answers to whatever the host asks, so it works with a real model driving. A chapter banner above the device tells the story at each beat, then Anna asks her own device how Mom is. About two and a half minutes, which is what the hackathon video is. With `HEARTH_TTS=polly` the voices come from Amazon Polly through the AWS CLI (`HEARTH_AWS_CLI`, `HEARTH_AWS_PROFILE`, `HEARTH_AWS_REGION`), cached under the media folder; otherwise the browser's own voices are used, pickable next to the button. Drop a recording at `assets/demo/anna_message.mp3` and Anna's message plays in her voice.
+
 ## How a check-in flows
 
 ```mermaid
@@ -123,6 +125,7 @@ Every message is written to the dashboard feed. Email goes out through any SMTP 
 | `HEARTH_WATCHDOG_SECONDS` | Ladder evaluation interval (default 60) |
 | `HEARTH_SMTP_HOST/PORT/USER/PASS/FROM` | Enable email to contacts with `channel=email`. For Amazon SES: host `email-smtp.<region>.amazonaws.com`, port 587, the SMTP credentials from the SES console, a verified sender |
 | `HEARTH_FAMILY_EMAIL` | Demo convenience: the seeded family contacts get this real inbox with `channel=email` |
+| `HEARTH_TTS`, `HEARTH_AWS_CLI`, `HEARTH_AWS_PROFILE`, `HEARTH_AWS_REGION` | `HEARTH_TTS=polly` narrates the demo with Amazon Polly via the AWS CLI (e.g. `wsl.exe -d Ubuntu -- aws` on Windows); off by default |
 | `HEARTH_LLM_BASE_URL/API_KEY/MODEL` | Optional: run the simulator with a real LLM host. Amazon Bedrock Converse API (Claude, Nova): base URL `https://bedrock-runtime.us-west-2.amazonaws.com`, a Bedrock API key, model `us.anthropic.claude-sonnet-4-6`. Or any OpenAI-compatible endpoint (Bedrock Mantle, Groq, OpenAI): base URL ending in `/v1`, model e.g. `openai.gpt-oss-120b` |
 | `HEARTH_LLM_PROTOCOL` | `converse` (Bedrock Converse API) or `chat` (OpenAI chat completions). Inferred from the base URL when unset |
 | `HEARTH_PUBLIC_URL` | Public HTTPS base URL. Setting it turns on OAuth for `/mcp` and the account-linking page |
