@@ -21,14 +21,15 @@ Amazon built a version of this idea (Alexa Together) and shut it down in 2023. T
 
 | Piece | Path | What it does |
 |---|---|---|
-| MCP server | `hearth/mcp_server.py` | Fourteen tools, one resource, one prompt, served over Streamable HTTP (MCP spec 2025-11-25) at `/mcp`. Audio is returned as MCP audio content |
+| MCP server | `hearth/mcp_server.py` | Fourteen tools, four resources, one prompt, served over Streamable HTTP (MCP spec 2025-11-25) at `/mcp`. Structured results; audio returned as MCP audio content |
+| MCP App views | `hearth/ui.py` | Three `ui://` views (check-in card, calendar, family status) that any MCP Apps host renders on a screen: Echo Show, Claude, ChatGPT, VS Code. One HTML file each, a 40-line postMessage bridge, no SDK |
 | Agent Skill | `skill/SKILL.md` | The conversation playbook for an agent host: order, tone, safety boundaries, escalation |
 | Domain logic | `hearth/core.py` | Flags with negation handling, concern scoring, summaries, trends, away-aware contact routing, notifications |
 | Escalation watchdog | `hearth/escalation.py` | Idempotent per-day ladder with an injectable clock |
 | Caregiver dashboard | `web/index.html` at `/` | Status, 14-day timeline with the actual words, alerts, trends, calendar, voice messages, questions, contacts and away mode, window settings |
-| Alexa+ simulator | `web/sim.html` at `/sim` | Stands in for the device; runs the same tools; plays family audio; records voice notes; shows every MCP call live |
+| Alexa+ simulator | `web/sim.html` at `/sim` | An Echo Show style device and the family's phone. Implements the host side of MCP Apps (sandboxed frames, `ui/initialize`, tool input and results, `ui/message`, `tools/call`), plays family audio, records voice notes, shows every MCP call live |
 | Scripted host | `hearth/agent.py` | A deterministic host policy with light language handling so the demo needs no API key. Optional LLM host over any OpenAI-compatible endpoint |
-| Tests | `tests/` | 15 tests: parsers, negation, fresh-per-day check-ins, context assembly, away routing, audio round-trip, events, ladder timing, snooze, the scripted host end to end |
+| Tests | `tests/` | 19 tests: parsers, negation, fresh-per-day check-ins, context assembly, away routing, audio round-trip, events, ladder timing, snooze, the scripted host end to end, the MCP Apps surface over Streamable HTTP, the full OAuth flow |
 
 ## Quick start
 
@@ -40,7 +41,7 @@ python -m hearth            # http://127.0.0.1:8787
 The first run seeds a demo household: Margaret, 79, Columbus, two medications, daughter Anna as primary contact (away this week, neighbor Tom covering), a son, two weeks of history, a message from Anna, a question she wants asked, a cardiology appointment today and a hair appointment tomorrow.
 
 - Dashboard: http://127.0.0.1:8787/
-- Simulator: http://127.0.0.1:8787/sim — press **Start morning check-in** and answer as Margaret. Try "I fell getting to the bathroom", "slept well and took my pills with my toast", "tell Anna I love her", "I have the dentist on Friday at 10", "call my daughter", "not now, later".
+- Simulator: http://127.0.0.1:8787/sim — press **Start morning check-in** and answer as Margaret. The device screen shows the check-in card ticking off as she answers; Anna's phone shows what the family gets. Try "I fell getting to the bathroom", "slept well and took my pills with my toast", "tell Anna I love her", "I have the dentist on Friday at 10", "call my daughter", "not now, later". **Reset demo** reseeds the household.
 - MCP endpoint: `POST http://127.0.0.1:8787/mcp` (Streamable HTTP, stateless, JSON responses)
 
 Run the tests with `python -m pytest -q tests`.
@@ -92,6 +93,20 @@ If Margaret says "help" or describes an emergency at any point, the host calls `
 
 Resource `hearth://persons/{id}/today` and prompt `daily_checkin(person_id)` give a host the same context declaratively.
 
+## On a screen: MCP App views
+
+Alexa+ devices with screens, and hosts such as Claude, ChatGPT and VS Code, render **MCP Apps**: HTML views a server ships as `ui://` resources. Hearth ships three, in `hearth/ui.py`:
+
+| View | Rendered for | Shows |
+|---|---|---|
+| `ui://hearth/checkin` | `get_checkin_context`, `start_checkin`, `record_answer`, `complete_checkin`, `get_family_message`, `request_help`, `snooze_checkin`, `record_reply`, `log_medication` | Greeting, the topics ticking off with the interpreted answers, flags in amber, medication, today's appointments, the family message with a play button, the outcome (summary sent, family alerted, paused) |
+| `ui://hearth/calendar` | `list_events`, `add_event` | The next seven days; an event just added by voice is highlighted. Grid on a device, agenda list on a phone |
+| `ui://hearth/status` | `get_status` | The caregiver's card: state, concern level, summary, open alerts, flags, the week's trends |
+
+How it fits the spec (2026-01-26): each tool advertises its view in `_meta.ui.resourceUri`; the resources are served with mime type `text/html;profile=mcp-app` and `_meta.ui` rendering hints; the host renders the HTML in a sandboxed iframe and the two sides talk JSON-RPC over `postMessage`. A view sends `ui/initialize`, reads the host context it gets back (theme, container size, safe-area insets), announces `ui/notifications/initialized`, then receives `ui/notifications/tool-input` and `ui/notifications/tool-result` for the call that opened it. The check-in card also sends `ui/message` (the play button asks the host to replay the message) and reports `ui/notifications/size-changed`. Views size their type from the host's `containerDimensions`, never from the viewport, so they look right on an Echo Show, in a chat sidebar, or on a phone.
+
+The simulator implements the host side, in about eighty lines of `web/sim.html`, so the demo exercises the same contract a real host would. Tool results carry `structuredContent`, which is what the views render from; the text block is the fallback.
+
 ## Concern scoring, in the open
 
 Hearth doesn't diagnose. It adds up things a family member would want to know: low mood or bad sleep, skipped medication, not eating, and words that matter. The word list is in `hearth/core.py` and is deliberately small and readable: a fall, chest pain, trouble breathing, dizziness, confusion, pain, loneliness, "help". Negations are handled ("I'm not hurt" doesn't flag; "I did not fall" doesn't flag). A score of 50 or more notifies the top two contacts; 80 or more notifies everyone. The person's exact words go into the summary so the family can judge for themselves.
@@ -103,10 +118,11 @@ Every message is written to the dashboard feed. Email (SMTP) and webhooks are wi
 | Variable | Purpose |
 |---|---|
 | `HEARTH_PORT`, `HEARTH_HOST` | Server bind (default 127.0.0.1:8787) |
+| (any of these in a `.env` file) | `python -m hearth` reads `KEY=value` lines from `.env` in the working directory; the file is git-ignored |
 | `HEARTH_DB`, `HEARTH_MEDIA` | SQLite path, audio folder |
 | `HEARTH_WATCHDOG_SECONDS` | Ladder evaluation interval (default 60) |
 | `HEARTH_SMTP_HOST/PORT/USER/PASS/FROM` | Enable email to contacts with `channel=email` |
-| `HEARTH_LLM_BASE_URL/API_KEY/MODEL` | Optional: run the simulator with a real LLM host over any OpenAI-compatible endpoint |
+| `HEARTH_LLM_BASE_URL/API_KEY/MODEL` | Optional: run the simulator with a real LLM host over any OpenAI-compatible endpoint, e.g. Amazon Bedrock: base URL `https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1`, a Bedrock API key, model `openai.gpt-oss-120b` |
 | `HEARTH_PUBLIC_URL` | Public HTTPS base URL. Setting it turns on OAuth for `/mcp` and the account-linking page |
 | `HEARTH_OAUTH_CLIENT_ID/SECRET` | The fixed client Alexa+ uses (from the developer console) |
 | `HEARTH_OAUTH_REDIRECT_URIS` | Comma-separated Alexa account-linking redirect URIs; any Amazon `/api/skill/link/` URI is also accepted |
@@ -149,9 +165,11 @@ alexa-ai deploy
 
 The Alexa AI CLI needs Node 24 on macOS or Ubuntu (WSL works), an Amazon developer account, and an AWS account for its private npm registry. `tests/oauth_flow_check.py` exercises the exact flow the toolkit uses, end to end, without any of that.
 
+**Where this stands, honestly.** As of September 2026 the MCP Toolkit is a private preview: Amazon's builder page says it is "available to select partners working directly with our team", the CLI's registry only admits allow-listed AWS accounts, and the hackathon organizers confirmed that participants have no way to call Alexa+ during the contest. So the simulator is the demo surface, and everything above is built to the published requirements so that switching to the real host is configuration, not code.
+
 ## Status and roadmap
 
-Built for the Amazon Developer Hackathon 2026, Alexa+ track. Working: everything above. Next: account linking so a device maps to a person, real device testing on Alexa+, an SMS provider, multiple households per instance, a weekly family digest, and a phone-call fallback when the device gets no answer.
+Built for the Amazon Developer Hackathon 2026, Alexa+ track. Working: everything above, including account linking and the on-screen views. Next: real device testing when the Alexa+ toolkit opens up, an LLM host on Amazon Bedrock, email and SMS through AWS, multiple households per instance, a weekly family digest, and a phone-call fallback when the device gets no answer.
 
 ## Disclosure
 
