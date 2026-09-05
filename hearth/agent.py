@@ -389,7 +389,7 @@ def _checkin_state(s: dict) -> str:
 def _system_prompt(s: dict) -> str:
     return (_skill_text() + "\n\n## This session\n\n" + M.daily_checkin(s["person_id"]) +
             f" The person_id is {s['person_id']}. You are speaking aloud through a device: plain spoken sentences, no markdown, no lists, "
-            "no numbers or scales read out to the person, no stage directions or parentheticals, under 40 words per reply, one question at a time. "
+            "no numbers or scales read out to the person, no stage directions or parentheticals, under 30 words per reply, one question at a time, no need to repeat back what they said. "
             "Interpret answers yourself and record them with record_answer before you reply: value is a 1-5 number for mood and sleep, yes or no for meds_taken and ate, and a short phrase for concern, plans, note, event and question fields; quote is always their exact words. Say medication names without the dosages. "
             "When a family message has audio, the device plays it when you call get_family_message; just say who it is from and continue. "
             "Finish with complete_checkin and speak its closing_line.\n\n" + _checkin_state(s) +

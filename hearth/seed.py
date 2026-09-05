@@ -5,10 +5,10 @@ import os, datetime as dt, json, random
 from . import db, core
 
 
-def run() -> None:
+def run(timezone: str | None = None) -> None:
     db.reset()
     pid = db.execute("INSERT INTO persons(name, nickname, timezone, window_start, window_end, notes, created_at) VALUES (?,?,?,?,?,?,?)",
-                     ("Margaret Hale", "Margaret", "America/New_York", "08:00", "11:00",
+                     ("Margaret Hale", "Margaret", timezone or "America/New_York", "08:00", "11:00",
                       "Lives alone in Columbus. Knee replacement in March. Likes to talk about her garden and the Reds.", db.now_iso()))
     ids = {}
     family_email = os.environ.get("HEARTH_FAMILY_EMAIL", "")          # a real inbox for the demo family, when configured

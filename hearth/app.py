@@ -201,10 +201,32 @@ async def api_demo_missed(request: Request):
     return JSONResponse({"simulated_time": fake_now.isoformat(), "created": escalation.run_once(fake_now)})
 
 
+def _morning_timezone(hour: int = 9) -> str | None:
+    """A real timezone where it is about `hour` o'clock right now, so a recorded demo is a morning check-in whatever the wall clock says."""
+    import zoneinfo
+    now = dt.datetime.now(dt.timezone.utc)
+    preferred = ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Pacific/Honolulu", "Pacific/Auckland", "Australia/Sydney", "Australia/Adelaide",
+                 "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata", "Asia/Dubai", "Europe/Moscow", "Europe/Berlin", "Europe/London", "Atlantic/Azores", "America/Sao_Paulo", "America/Halifax", "America/St_Johns"]
+    names = preferred + sorted(z for z in zoneinfo.available_timezones() if "/" in z and not z.startswith("Etc/"))
+    for want in (hour, hour - 1, hour + 1):
+        for tz in names:
+            try:
+                if now.astimezone(zoneinfo.ZoneInfo(tz)).hour == want: return tz
+            except Exception:
+                continue
+    return None
+
+
 async def api_demo_reset(request: Request):
     from . import seed
-    seed.run()
-    return JSONResponse({"ok": True})
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    tz = _morning_timezone() if body.get("morning") else None
+    seed.run(timezone=tz)
+    return JSONResponse({"ok": True, "timezone": tz})
 
 
 @contextlib.asynccontextmanager

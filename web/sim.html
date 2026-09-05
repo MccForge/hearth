@@ -249,6 +249,7 @@ const MARGARET = [                                                          // [
   [/patel|cardio|appointment|2 pm|two o'clock|tom.*(driv|pick)|all set/i, "Yes, Tom's picking me up at half past one."],
   [/sleep|night|rest/i, "Not great. My knee kept me up half the night."],
   [/medic|pill|lisinopril|metformin|tablet/i, "Yes, I took them with my toast."],
+  [/since then|one meal|enough to eat|anything else to eat|lunch|later today/i, "That's all so far. I'll have some soup at lunch."],
   [/eat|breakfast|food|hungry|meal/i, "Toast and a boiled egg."],
   [/bother|worr|on your mind|concern|anything else|trouble/i, "Nothing really. Though I did have a little fall getting to the bathroom yesterday."],
   [/plan|rest of the day|today.*doing|up to/i, "The garden, then a nap, I think."],
@@ -272,7 +273,7 @@ async function runDemo() {
   document.getElementById('speak').checked = true;
   window.beatsUsed = new Set();
   try {
-    await post('/api/demo/reset', {}); await pause(600);
+    await post('/api/demo/reset', {morning: true}); await pause(600);
     chapter('Hearth', 'A daily voice check-in for someone living alone, with the family kept in the loop. Margaret, 79, lives alone in Columbus.');
     await start();                                                             // greeting + Anna's message, spoken
     let guard = 0;
