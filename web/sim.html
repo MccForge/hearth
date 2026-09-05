@@ -261,13 +261,13 @@ async function runDemo() {
     await start();                                                             // greeting + Anna's message, spoken
     let guard = 0;
     while (!done && guard++ < 14) {
-      await pause(1100);
+      await pause(700);
       const line = margaretLine(lastAgentLine);
       setState('Margaret speaking', 'listen'); const cap = document.getElementById('caption'); cap.innerHTML = `<div class="you">“${esc(line)}”</div>`; cap.classList.add('on'); echo.notifyResize();
-      await speak(line, 'margaret'); await pause(250);
+      await speak(line, 'margaret'); await pause(150);
       await say(line);
     }
-    await pause(1800);
+    await pause(1400);
     await askStatus();                                                         // Anna asks her own device how Mom is
   } finally { demoRunning = false; btn.disabled = false; btn.textContent = '▶ Run demo'; }
 }
